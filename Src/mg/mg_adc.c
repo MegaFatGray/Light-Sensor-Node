@@ -50,71 +50,21 @@ extern UART_HandleTypeDef huart1;
 // functions
 void mg_adc_GetReading(void)
 {
-	AdcStatus = HAL_ADC_Start(&hadc);
-	
-	char AdcStatusString[50];
-	switch(AdcStatus)
+	// Start ADC reading
+	if(HAL_ADC_Start(&hadc) != HAL_OK)
 	{
-		case HAL_OK:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_Start HAL_OK");
-			break;
-		}
-		case HAL_ERROR:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_Start HAL_ERROR");
-			break;
-		}
-		case HAL_BUSY:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_Start HAL_BUSY");
-			break;
-		}
-		case HAL_TIMEOUT:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_Start HAL_TIMEOUT");
-			break;
-		}
-		default:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_Start defaulted");
-			break;
-		}
+		char ErrorString[50];
+		strcpy(ErrorString, "\n\rHAL_ADC_Start - Failed");
+		while(1);
 	}
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcStatusString, strlen(AdcStatusString), 500);
 	
-	AdcStatus = HAL_ADC_PollForConversion(&hadc, PollForConversionTimeout);
-	
-	switch(AdcStatus)
+	// Wait for conversion to complete
+	while(HAL_ADC_PollForConversion(&hadc, PollForConversionTimeout) != HAL_OK)
 	{
-		case HAL_OK:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_PollForConversion HAL_OK");
-			break;
-		}
-		case HAL_ERROR:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_PollForConversion HAL_ERROR");
-			break;
-		}
-		case HAL_BUSY:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_PollForConversion HAL_BUSY");
-			break;
-		}
-		case HAL_TIMEOUT:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_PollForConversion HAL_TIMEOUT");
-			break;
-		}
-		default:
-		{
-			strcpy(AdcStatusString, "\n\rHAL_ADC_PollForConversion defaulted");
-			break;
-		}
+		__NOP;
 	}
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcStatusString, strlen(AdcStatusString), 500);
 	
+	// Get reading
 	uint32_t AdcReading = HAL_ADC_GetValue(&hadc);
 	char AdcReadingString[50];
 	sprintf(AdcReadingString, "\n\rADC Reading = %d", AdcReading);

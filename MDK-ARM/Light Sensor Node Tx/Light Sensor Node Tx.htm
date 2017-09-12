@@ -3,9 +3,9 @@
 <title>Static Call Graph - [Light Sensor Node Tx\Light Sensor Node Tx.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image Light Sensor Node Tx\Light Sensor Node Tx.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060528: Last Updated: Tue Sep 12 19:16:15 2017
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5060528: Last Updated: Tue Sep 12 19:36:03 2017
 <BR><P>
-<H3>Maximum Stack Usage =        232 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
+<H3>Maximum Stack Usage =        224 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
 main &rArr; mg_adc_GetReading &rArr; HAL_UART_Transmit &rArr; UART_WaitOnFlagUntilTimeout
 <P>
@@ -664,7 +664,7 @@ Global Symbols
 <P><STRONG><a name="[79]"></a>__scatterload_zeroinit</STRONG> (Thumb, 14 bytes, Stack size unknown bytes, handlers.o(i.__scatterload_zeroinit), UNUSED)
 
 <P><STRONG><a name="[21]"></a>main</STRONG> (Thumb, 86 bytes, Stack size 24 bytes, main.o(i.main))
-<BR><BR>[Stack]<UL><LI>Max Depth = 232<LI>Call Chain = main &rArr; mg_adc_GetReading &rArr; HAL_UART_Transmit &rArr; UART_WaitOnFlagUntilTimeout
+<BR><BR>[Stack]<UL><LI>Max Depth = 224<LI>Call Chain = main &rArr; mg_adc_GetReading &rArr; HAL_UART_Transmit &rArr; UART_WaitOnFlagUntilTimeout
 </UL>
 <BR>[Calls]<UL><LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;mg_adc_GetReading
 <LI><a href="#[55]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_Transmit
@@ -681,8 +681,8 @@ Global Symbols
 </UL>
 <BR>[Address Reference Count : 1]<UL><LI> entry9a.o(.ARM.Collect$$$$0000000B)
 </UL>
-<P><STRONG><a name="[68]"></a>mg_adc_GetReading</STRONG> (Thumb, 182 bytes, Stack size 120 bytes, mg_adc.o(i.mg_adc_GetReading))
-<BR><BR>[Stack]<UL><LI>Max Depth = 208<LI>Call Chain = mg_adc_GetReading &rArr; HAL_UART_Transmit &rArr; UART_WaitOnFlagUntilTimeout
+<P><STRONG><a name="[68]"></a>mg_adc_GetReading</STRONG> (Thumb, 78 bytes, Stack size 112 bytes, mg_adc.o(i.mg_adc_GetReading))
+<BR><BR>[Stack]<UL><LI>Max Depth = 200<LI>Call Chain = mg_adc_GetReading &rArr; HAL_UART_Transmit &rArr; UART_WaitOnFlagUntilTimeout
 </UL>
 <BR>[Calls]<UL><LI><a href="#[55]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_UART_Transmit
 <LI><a href="#[34]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;HAL_ADC_Start
