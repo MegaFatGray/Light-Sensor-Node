@@ -12,6 +12,7 @@
 #define __MG_ADC_H
 /*****************************************************************************/
 // standard libraries first
+#include "stm32l0xx_hal.h"
  
 // user headers directly related to this component, ensures no dependency
  
@@ -34,7 +35,10 @@
   
 /*****************************************************************************/
 // function declarations
-void mg_adc_GetReading(void);
+uint32_t mg_adc_GetRawReading(void);
+uint32_t mg_adc_Cal(void);
+uint32_t mg_adc_GetTemp(void);
+uint32_t mg_adc_GetLight(void);
   
 /*****************************************************************************/
 // variables

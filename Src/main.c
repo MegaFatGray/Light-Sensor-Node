@@ -123,10 +123,31 @@ int main(void)
 		//char HereString[20] 		= "\n\rhere";
 		//HAL_UART_Transmit(&huart1, (uint8_t*)HereString, strlen(HereString), 500);
 		
+		uint32_t AdcReading;
+		char AdcReadingString[50];
+		
 		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 		HAL_Delay(1000);
 		
-		mg_adc_GetReading();
+		AdcReading = mg_adc_GetRawReading();
+		sprintf(AdcReadingString, "\n\rADC Raw Reading = %d", AdcReading);
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		HAL_Delay(100);
+		
+		AdcReading = mg_adc_Cal();
+		sprintf(AdcReadingString, "\n\rADC Cal Vdd = %d", AdcReading);
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		HAL_Delay(100);
+		
+		AdcReading = mg_adc_GetTemp();
+		sprintf(AdcReadingString, "\n\rADC Temp Reading = %d", AdcReading);
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		HAL_Delay(100);
+		
+		AdcReading = mg_adc_GetLight();
+		sprintf(AdcReadingString, "\n\rADC Light Reading = %d", AdcReading);
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		HAL_Delay(100);
 		
   /* USER CODE END WHILE */
 
@@ -213,7 +234,7 @@ static void MX_ADC_Init(void)
   hadc.Init.OversamplingMode = DISABLE;
   hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV1;
   hadc.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc.Init.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  hadc.Init.SamplingTime = ADC_SAMPLETIME_12CYCLES_5;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc.Init.ContinuousConvMode = DISABLE;
