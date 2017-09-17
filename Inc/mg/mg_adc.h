@@ -36,7 +36,8 @@
 /*****************************************************************************/
 // function declarations
 uint32_t mg_adc_GetRawReading(void);
-uint32_t mg_adc_Cal(void);
+uint32_t mg_adc_GetVbat(void);
+uint32_t mg_adc_ScaleReadingTo3V(uint32_t reading);
 uint32_t mg_adc_GetTemp(void);
 uint32_t mg_adc_GetLight(void);
   
