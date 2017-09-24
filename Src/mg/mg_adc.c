@@ -99,13 +99,6 @@ uint32_t mg_adc_GetVbat(void)
 	return Vbat;
 }
 
-uint32_t mg_adc_ScaleReadingTo3V(uint32_t reading)
-{
-	uint32_t scaleFactor = ( 3000*1000 / mg_adc_GetVbat() );
-	uint32_t scaledReading = (reading * scaleFactor) / 1000;
-	return scaledReading;
-}
-
 // ADC sampling time must be >10us
 // CubeMX configured for synchronous ADC clock with no prescalar
 // System clock 16MHz
@@ -113,8 +106,6 @@ uint32_t mg_adc_ScaleReadingTo3V(uint32_t reading)
 uint32_t mg_adc_GetTemp(void)
 {
 	char AdcReadingString[50];
-	
-	
 	
 	// Change ADC channel to internal temperature sensor
 	ADC1->CHSELR = ADC_CHSELR_CHSEL18;
@@ -124,8 +115,9 @@ uint32_t mg_adc_GetTemp(void)
 	sprintf(AdcReadingString, "\n\rReading = %d", AdcReading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	
-	// Scale reading to Vbat
-	AdcReading = mg_adc_ScaleReadingTo3V(AdcReading);
+	// Scale reading to cal values (Vdda=3V)
+	AdcReading = ( AdcReading * mg_adc_GetVbat() ) / 3;
+	AdcReading /= 1000;
 	sprintf(AdcReadingString, "\n\rScaled Reading = %d", AdcReading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	
@@ -139,25 +131,12 @@ uint32_t mg_adc_GetTemp(void)
 	sprintf(AdcReadingString, "\n\rtSenseCal2 = %d", tSenseCal2);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	
-	// Calculate cal factor
-	uint32_t tSenseCalFactor = ((130-30)*1000) / (tSenseCal2 - tSenseCal1);
-	
-	sprintf(AdcReadingString, "\n\rtSenseCalFactor = %d", tSenseCalFactor);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
-	
-	
-	
-	// Convert to degrees Celcius
-	//uint32_t tempDegC = ( ((130-30)*1000) / ((tSenseCal2 - tSenseCal1)*1000) ) / 1000;
-	
-	
-	uint32_t tempDegC = (AdcReading - tSenseCal1);
+	// Calculate temperature
+	uint32_t tempDegC = ( ( ( (130-30)*1000 ) / (tSenseCal2 - tSenseCal1) ) * (AdcReading - tSenseCal1) / 1000 ) + 30;
 	sprintf(AdcReadingString, "\n\rtempDegC = %d", tempDegC);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	
-	//* (AdcReading - tSenseCal1) + 30;
-	
-	//return tempDegC;
+	return tempDegC;
 }
 
 uint32_t mg_adc_GetLight(void)
