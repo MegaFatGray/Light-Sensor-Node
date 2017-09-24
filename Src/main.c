@@ -129,14 +129,6 @@ int main(void)
 		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 		HAL_Delay(1000);
 		
-		/*
-		AdcReading = mg_adc_GetRawReading();
-		sprintf(AdcReadingString, "\n\rADC Raw Reading = %d", AdcReading);
-		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
-		HAL_Delay(100);
-		*/
-		
-		
 		AdcReading = mg_adc_GetVbat();
 		sprintf(AdcReadingString, "\n\rADC Cal Vbat = %d", AdcReading);
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);

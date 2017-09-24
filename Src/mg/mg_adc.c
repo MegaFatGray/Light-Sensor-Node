@@ -13,9 +13,10 @@
  
 // user headers directly related to this component, ensures no dependency
 #include "mg_adc.h"
+#include "mg_global_defs.h"
 #include "stm32l0xx_hal.h"
 #include "string.h"
-   
+
 // user headers from other components
   
 /*****************************************************************************/
@@ -30,13 +31,13 @@ HAL_StatusTypeDef AdcStatus;
   
 /*****************************************************************************/
 // constants
-
-/*****************************************************************************/
-// macros
 #define VREFINT_CAL_ADDR    0x1FF80078
 #define T_SENSE_CAL1_ADDR		0x1FF8007A
 #define T_SENSE_CAL2_ADDR		0x1FF8007E
 #define ADC_RESOLUTION			4096
+
+/*****************************************************************************/
+// macros
   
 /*****************************************************************************/
 // static function declarations
@@ -65,7 +66,7 @@ uint32_t mg_adc_GetRawReading(void)
 	// Wait for conversion to complete
 	while(HAL_ADC_PollForConversion(&hadc, PollForConversionTimeout) != HAL_OK)
 	{
-		char HereString[20] 		= "\n\rhere";
+		char HereString[50] 		= "\n\rHAL_ADC_PollForConversion - Not okay";
 		HAL_UART_Transmit(&huart1, (uint8_t*)HereString, strlen(HereString), 500);
 	}
 	
@@ -105,36 +106,51 @@ uint32_t mg_adc_GetVbat(void)
 // Therefore minimum of 160 clock cycles 
 uint32_t mg_adc_GetTemp(void)
 {
-	char AdcReadingString[50];
-	
 	// Change ADC channel to internal temperature sensor
 	ADC1->CHSELR = ADC_CHSELR_CHSEL18;
 	
 	// Get reading
 	uint32_t AdcReading = mg_adc_GetRawReading();
+	
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
 	sprintf(AdcReadingString, "\n\rReading = %d", AdcReading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
 	
 	// Scale reading to cal values (Vdda=3V)
 	AdcReading = ( AdcReading * mg_adc_GetVbat() ) / 3;
 	AdcReading /= 1000;
+	
+	#ifdef DEBUG_ADC
 	sprintf(AdcReadingString, "\n\rScaled Reading = %d", AdcReading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
 	
 	// Read internal temperature cal values
 	uint16_t tSenseCal1;
 	tSenseCal1 = *((uint16_t*)T_SENSE_CAL1_ADDR);
+	
+	#ifdef DEBUG_ADC
 	sprintf(AdcReadingString, "\n\rtSenseCal1 = %d", tSenseCal1);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
 	uint16_t tSenseCal2;
 	tSenseCal2 = *((uint16_t*)T_SENSE_CAL2_ADDR);
+	
+	#ifdef DEBUG_ADC
 	sprintf(AdcReadingString, "\n\rtSenseCal2 = %d", tSenseCal2);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
 	
 	// Calculate temperature
 	uint32_t tempDegC = ( ( ( (130-30)*1000 ) / (tSenseCal2 - tSenseCal1) ) * (AdcReading - tSenseCal1) / 1000 ) + 30;
+	
+	#ifdef DEBUG_ADC
 	sprintf(AdcReadingString, "\n\rtempDegC = %d", tempDegC);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
 	
 	return tempDegC;
 }

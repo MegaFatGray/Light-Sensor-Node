@@ -35,4 +35,5 @@ light sensor node tx\mg_adc.o: ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal
 light sensor node tx\mg_adc.o: ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_spi.h
 light sensor node tx\mg_adc.o: ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart.h
 light sensor node tx\mg_adc.o: ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart_ex.h
+light sensor node tx\mg_adc.o: ..\Inc\mg\mg_global_defs.h
 light sensor node tx\mg_adc.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
