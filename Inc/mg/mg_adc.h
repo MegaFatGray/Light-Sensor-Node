@@ -23,6 +23,11 @@
   
 /*****************************************************************************/
 // typedefs
+typedef enum
+{
+	LIGHT_RANGE_HIGH,
+	LIGHT_RANGE_LOW
+} LightRange_t;
   
 /*****************************************************************************/
 // structures
@@ -35,6 +40,7 @@
   
 /*****************************************************************************/
 // function declarations
+uint32_t mg_adc_SetLightRange(LightRange_t range);
 uint32_t mg_adc_GetRawReading(void);
 uint32_t mg_adc_GetVbat(void);
 uint32_t mg_adc_ScaleReadingTo3V(uint32_t reading);

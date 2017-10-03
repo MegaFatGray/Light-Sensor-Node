@@ -31,10 +31,11 @@ HAL_StatusTypeDef AdcStatus;
   
 /*****************************************************************************/
 // constants
-#define VREFINT_CAL_ADDR    0x1FF80078
-#define T_SENSE_CAL1_ADDR		0x1FF8007A
-#define T_SENSE_CAL2_ADDR		0x1FF8007E
-#define ADC_RESOLUTION			4096
+#define VREFINT_CAL_ADDR    			0x1FF80078
+#define T_SENSE_CAL1_ADDR					0x1FF8007A
+#define T_SENSE_CAL2_ADDR					0x1FF8007E
+#define ADC_RESOLUTION						4096
+#define LIGHT_PWR_SETTLE_TIME_MS	1
 
 /*****************************************************************************/
 // macros
@@ -53,6 +54,34 @@ extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // functions
+uint32_t mg_adc_SetLightRange(LightRange_t range)
+{
+	switch (range)
+	{
+		case LIGHT_RANGE_HIGH:
+		{
+			// Set the range high
+			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_SET);
+		}
+		
+		case LIGHT_RANGE_LOW:
+		{
+			// Set the range low
+			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_RESET);
+		}
+		
+		default:
+		{
+			#ifdef DEBUG_ADC
+			char AdcReadingString[50];
+			sprintf(AdcReadingString, "Error: range not valid");
+			HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+			#endif
+			while(1);
+		}
+	}
+}
+
 uint32_t mg_adc_GetRawReading(void)
 {
 	// Start ADC reading
@@ -157,11 +186,25 @@ uint32_t mg_adc_GetTemp(void)
 
 uint32_t mg_adc_GetLight(void)
 {
+	// Set the range
+	//HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_SET);
+	mg_adc_SetLightRange(LIGHT_RANGE_HIGH);
+	
+	// Turn on power to ambient light sensor
+	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
+	
+	// Allow time for output to settle
+	HAL_Delay(LIGHT_PWR_SETTLE_TIME_MS);
+	
 	// Change ADC channel to light sensor pin
 	ADC1->CHSELR = ADC_CHSELR_CHSEL10;
 	
 	// Get reading
 	uint32_t AdcReading = mg_adc_GetRawReading();
+	
+	// Turn off power to ambient light sensor
+	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
+	
 	return AdcReading;
 }
 

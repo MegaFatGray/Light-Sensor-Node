@@ -112,8 +112,6 @@ int main(void)
 	char mystring1[] = "TEST PROGRAM";
 	HAL_UART_Transmit(&huart1, (uint8_t*)mystring1, strlen(mystring1), 500);
 	
-	
-	
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -129,23 +127,25 @@ int main(void)
 		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 		HAL_Delay(1000);
 		
+		/*
 		AdcReading = mg_adc_GetVbat();
 		sprintf(AdcReadingString, "\n\rADC Cal Vbat = %d", AdcReading);
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		HAL_Delay(100);
+		*/
 		
-		
+		/*
 		AdcReading = mg_adc_GetTemp();
 		sprintf(AdcReadingString, "\n\rADC Temp Reading = %d", AdcReading);
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		HAL_Delay(100);
+		*/
 		
-		/*
+		
 		AdcReading = mg_adc_GetLight();
 		sprintf(AdcReadingString, "\n\rADC Light Reading = %d", AdcReading);
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		HAL_Delay(100);
-		*/
 		
   /* USER CODE END WHILE */
 
