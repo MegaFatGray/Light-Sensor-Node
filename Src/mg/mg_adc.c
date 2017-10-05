@@ -36,6 +36,7 @@ HAL_StatusTypeDef AdcStatus;
 #define T_SENSE_CAL2_ADDR					0x1FF8007E
 #define ADC_RESOLUTION						4096
 #define LIGHT_PWR_SETTLE_TIME_MS	1
+#define LUX_CONV_FACTOR_PA				180
 
 /*****************************************************************************/
 // macros
@@ -54,33 +55,6 @@ extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // functions
-uint32_t mg_adc_SetLightRange(LightRange_t range)
-{
-	switch (range)
-	{
-		case LIGHT_RANGE_HIGH:
-		{
-			// Set the range high
-			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_SET);
-		}
-		
-		case LIGHT_RANGE_LOW:
-		{
-			// Set the range low
-			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_RESET);
-		}
-		
-		default:
-		{
-			#ifdef DEBUG_ADC
-			char AdcReadingString[50];
-			sprintf(AdcReadingString, "Error: range not valid");
-			HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
-			#endif
-			while(1);
-		}
-	}
-}
 
 uint32_t mg_adc_GetRawReading(void)
 {
@@ -127,6 +101,14 @@ uint32_t mg_adc_GetVbat(void)
 	// Calculate battery voltage
 	uint32_t Vbat = (3 * (vrefint_cal*1000 / AdcReading*1000)) / 1000;
 	return Vbat;
+}
+
+uint32_t mg_adc_ConvertMv(uint32_t reading)
+{
+	// Convert to mV
+	uint32_t vBat = mg_adc_GetVbat();
+	reading = ((reading * ((vBat*1000) / ADC_RESOLUTION)) / 1000);
+	return reading;
 }
 
 // ADC sampling time must be >10us
@@ -184,11 +166,87 @@ uint32_t mg_adc_GetTemp(void)
 	return tempDegC;
 }
 
+void mg_adc_SetLightRange(LightRange_t range)
+{
+	switch (range)
+	{
+		case LIGHT_RANGE_HIGH:
+		{
+			// Set the range high
+			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_SET);
+			break;
+		}
+		
+		case LIGHT_RANGE_LOW:
+		{
+			// Set the range low
+			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_RESET);
+			break;
+		}
+		
+		default:
+		{
+			#ifdef DEBUG_ADC
+			char AdcReadingString[50];
+			sprintf(AdcReadingString, "Error: range not valid");
+			HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+			#endif
+			while(1);
+		}
+	}
+}
+
+uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
+{
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rreading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Convert to mV
+	reading = mg_adc_ConvertMv(reading);
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rreading_mV = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Convert to pA
+	if(range == LIGHT_RANGE_HIGH)
+	{
+		reading = (reading*1000*1000 / 100);
+	}
+	else if(range == LIGHT_RANGE_LOW)
+	{
+		reading = (reading*1000*10 / 100);
+	}
+	else
+	{
+		#ifdef DEBUG_ADC
+		sprintf(AdcReadingString, "\n\rError: range not valid");
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		#endif
+		while(1);
+	}
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rreading_pA = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Convert to lux
+	reading = reading / LUX_CONV_FACTOR_PA;
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rreading_lux = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	return reading;
+}
+
 uint32_t mg_adc_GetLight(void)
 {
 	// Set the range
-	//HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_SET);
-	mg_adc_SetLightRange(LIGHT_RANGE_HIGH);
+	mg_adc_SetLightRange(LIGHT_RANGE_LOW);
 	
 	// Turn on power to ambient light sensor
 	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
@@ -204,6 +262,9 @@ uint32_t mg_adc_GetLight(void)
 	
 	// Turn off power to ambient light sensor
 	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
+	
+	// Convert to lux
+	AdcReading = mg_adc_ConvertLight(AdcReading, LIGHT_RANGE_LOW);
 	
 	return AdcReading;
 }
