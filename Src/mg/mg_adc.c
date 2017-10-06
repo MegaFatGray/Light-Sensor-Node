@@ -56,6 +56,7 @@ extern UART_HandleTypeDef huart1;
 /*****************************************************************************/
 // functions
 
+/* Returns a raw ADC reading */
 uint32_t mg_adc_GetRawReading(void)
 {
 	// Start ADC reading
@@ -86,6 +87,7 @@ uint32_t mg_adc_GetRawReading(void)
 	return AdcReading;
 }
 
+/* Returns battery voltage */
 uint32_t mg_adc_GetVbat(void)
 {
 	// Change ADC channel to internal bandgap reference voltage
@@ -103,6 +105,7 @@ uint32_t mg_adc_GetVbat(void)
 	return Vbat;
 }
 
+/* Converts raw ADC reading to mV */
 uint32_t mg_adc_ConvertMv(uint32_t reading)
 {
 	// Convert to mV
@@ -166,6 +169,7 @@ uint32_t mg_adc_GetTemp(void)
 	return tempDegC;
 }
 
+/* Sets the light range on the ambient light sensor amplifier */
 void mg_adc_SetLightRange(LightRange_t range)
 {
 	switch (range)
@@ -196,18 +200,12 @@ void mg_adc_SetLightRange(LightRange_t range)
 	}
 }
 
+/* Converts mV to lux */
 uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 {
 	#ifdef DEBUG_ADC
 	char AdcReadingString[50];
 	sprintf(AdcReadingString, "\n\rreading = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
-	#endif
-	
-	// Convert to mV
-	reading = mg_adc_ConvertMv(reading);
-	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rreading_mV = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
@@ -243,30 +241,45 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 	return reading;
 }
 
+/* Returns a reading in lux */
 uint32_t mg_adc_GetLight(void)
 {
+	static LightRange_t lightRange = LIGHT_RANGE_LOW;
+
 	// Set the range
-	mg_adc_SetLightRange(LIGHT_RANGE_LOW);
+	mg_adc_SetLightRange(lightRange);
 	
 	// Turn on power to ambient light sensor
 	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
 	
-	// Allow time for output to settle
-	HAL_Delay(LIGHT_PWR_SETTLE_TIME_MS);
-	
 	// Change ADC channel to light sensor pin
 	ADC1->CHSELR = ADC_CHSELR_CHSEL10;
 	
+	// Allow time for output to settle
+	HAL_Delay(LIGHT_PWR_SETTLE_TIME_MS);
+	
 	// Get reading
-	uint32_t AdcReading = mg_adc_GetRawReading();
+	uint32_t reading = mg_adc_GetRawReading();
 	
 	// Turn off power to ambient light sensor
 	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
 	
-	// Convert to lux
-	AdcReading = mg_adc_ConvertLight(AdcReading, LIGHT_RANGE_LOW);
+	// Convert to mV
+	reading = mg_adc_ConvertMv(reading);
 	
-	return AdcReading;
+	// Check if the current range is appropriate
+	if(lightRange == LIGHT_RANGE_LOW)
+	{
+		if(reading < (mg_adc_GetVbat() / 100))
+		{
+			
+		}
+	}
+	
+	// Convert to lux
+	reading = mg_adc_ConvertLight(reading, lightRange);
+	
+	return reading;
 }
 
 // close the Doxygen group
