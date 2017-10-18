@@ -10,6 +10,7 @@
  
 /*****************************************************************************/
 // standard libraries
+#include <stdbool.h>
  
 // user headers directly related to this component, ensures no dependency
 #include "mg_adc.h"
@@ -24,6 +25,13 @@
 /*****************************************************************************/
 // typedefs
 HAL_StatusTypeDef AdcStatus;
+
+typedef enum stateADC {
+	ADC_STATE_IDLE,									// Not doing anything
+	ADC_STATE_CONVERTING,						// Conversion in progress
+	ADC_STATE_CONVERTED,						// Conversion ready
+	ADC_STATE_ERROR									// ADC error state
+} StateADC_t;
   
 /*****************************************************************************/
 // structures
@@ -39,6 +47,12 @@ HAL_StatusTypeDef AdcStatus;
   
 /*****************************************************************************/
 // static variable declarations
+StateADC_t stateADC = ADC_STATE_IDLE;	// ADC state machine state variable
+bool flagStartConv 		= false;				// Flag to indicate if a new conversion should start
+bool flagConvComplete = false;				// Flag to indicate conversion is complete
+
+
+
 uint32_t PollForConversionTimeout = 1000;
 
 /*****************************************************************************/
@@ -48,39 +62,82 @@ extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // functions
+/* ADC system state machine */
+void mg_adc_StateMachine(void)
+{
+	switch(stateADC)
+	{
+		case ADC_STATE_IDLE:
+		{
+			if(flagStartConv)										// If a new conversion has been requested
+			{
+				HAL_ADC_Start_IT(&hadc);						// Then start the ADC
+				flagStartConv = false;							// Reset flag
+				stateADC = ADC_STATE_CONVERTING;		// And go to converting state
+			}
+			break;
+		}
+		
+		case ADC_STATE_CONVERTING:
+		{
+			if(flagConvComplete)								// If the conversion is complete
+			{
+				HAL_ADC_Stop_IT(&hadc);							// Stop the ADC
+				flagConvComplete = false;						// Reset flag
+				stateADC = ADC_STATE_CONVERTED;			// And go to converted state
+			}
+			break;
+		}
+		
+		case ADC_STATE_CONVERTED:
+		{
+			uint32_t reading = HAL_ADC_GetValue(&hadc);		// Read the conversion result
+			
+			char debugString[50];
+			sprintf(debugString, "\n\rReading = %d", reading);
+			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+			
+			stateADC = ADC_STATE_IDLE;										// And go back to idle state
+			break;
+		}
+		
+		case ADC_STATE_ERROR:
+		{
+			// intentional fall through
+		}
+		
+		default:
+		{
+			char debugString[50] 		= "\n\rADC state machine error";
+			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+			while(1);
+		}
+	}
+}
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_ConvCpltCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	flagConvComplete = true;
 }
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
 {
 	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_ErrorCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	stateADC = ADC_STATE_ERROR;
 }
 	
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
 {
 	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_LevelOutOfWindowCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	stateADC = ADC_STATE_ERROR;
 }
 
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_ConvHalfCpltCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	stateADC = ADC_STATE_ERROR;
 }
 
-void mg_adc_StartReading(void)
-{
-	HAL_ADC_Start_IT(&hadc);
-}
 
 // close the Doxygen group
 /**

@@ -1,5 +1,5 @@
 /** ***************************************************************************
-*   \file        Filename.h
+*   \file        mg_adc.h
 *   \brief       Brief description of the file
 *
 *   \copyright   Copyright (C) : <company name> <creation date YYYY-MM-DD>
@@ -35,6 +35,7 @@
   
 /*****************************************************************************/
 // function declarations
+void mg_adc_StateMachine(void);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc);

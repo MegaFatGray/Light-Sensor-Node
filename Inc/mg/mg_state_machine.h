@@ -1,6 +1,6 @@
 /** ***************************************************************************
-*   \file        mg_main.c
-*   \brief       Top level program
+*   \file        mg_state_machine.h
+*   \brief       State machine module header file
 *
 *   \copyright   Copyright (C) : <company name> <creation date YYYY-MM-DD>
 *
@@ -8,15 +8,16 @@
 *   \{
 ******************************************************************************/
  
+#ifndef __MG_STATE_MACHINE_H
+#define __MG_STATE_MACHINE_H
 /*****************************************************************************/
-// standard libraries
+// standard libraries first
  
 // user headers directly related to this component, ensures no dependency
-#include "mg_main.h"
-#include "mg_state_machine.h"
-   
+#include "stm32l0xx_hal.h"
+ 
 // user headers from other components
-  
+ 
 /*****************************************************************************/
 // enumerations
   
@@ -28,31 +29,21 @@
   
 /*****************************************************************************/
 // constants
-
+  
 /*****************************************************************************/
 // macros
   
 /*****************************************************************************/
-// static function declarations
+// function declarations
   
 /*****************************************************************************/
-// static variable declarations
-
-/*****************************************************************************/
-// variable declarations
+// variables
   
 /*****************************************************************************/
 // functions
-
-void mg_main_Main(void)
-{
-	while(1)
-	{
-		mg_state_machine();
-	}
-}
-
-
+void mg_state_machine(void);
+  
+#endif /* __MG_STATE_MACHINE_H */
 // close the Doxygen group
 /**
 \}
