@@ -36,10 +36,12 @@ HAL_StatusTypeDef AdcStatus;
 #define T_SENSE_CAL2_ADDR					0x1FF8007E		// Memory address of the TSENSECAL2 calibration value
 #define ADC_RESOLUTION						4096					// Resolution of the ADC
 #define LIGHT_SETTLE_TIME_MS			50						// Time in ms to allow the sensor output to settle
-#define LUX_CONV_FACTOR_PA				180						// Conversion factor for convting from pA to lux
+#define LUX_CONV_FACTOR_PA				180						// Conversion factor for convting from pA to lux; output linear from 100,000 lux (18mA) to 1 lux (180pA)
 #define LIGHT_RANGE_THRESHOLD			5							// If the reading in low range is within this percentage of the battery voltage, use high range instead
 																								// If the reading in high range is within this percentage of the battery voltage above zero, use low range instead
 #define ADC_AVERAGE_WIDTH					5							// Number of ADC samples to average together for a single reading
+#define LIGHT_LOW_RANGE_GAIN			101						// Amplifier gain when in low range
+#define LIGHT_HIGH_RANGE_GAIN			2							// Amplifier gain when in high range
 
 /*****************************************************************************/
 // macros
@@ -250,24 +252,27 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 	
 	#ifdef DEBUG_ADC
 	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight 1st = %d", reading);
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight mV = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
-	// Convert mV to pA (100R current sense resistor)
+	// Convert mV to uV
+	reading *= 1000;
+	
+	// Convert uV to pA (100R current sense resistor): (uV/100 = uA) -> ((uV*10^3)/100 = pA) -> (mV*10 = pA) 
 	if(range == LIGHT_RANGE_HIGH)
 	{
-		// Divide by amplifier gain (101)
-		reading /= 101;
+		// Divide by amplifier gain
+		reading /= LIGHT_HIGH_RANGE_GAIN;
 		// Then convert to pA
-		reading *= 10000;
+		reading *= 10;
 	}
 	else if(range == LIGHT_RANGE_LOW)
 	{
-		// Divide by amplifier gain (2)
-		reading /= 2;
+		// Divide by amplifier gain
+		reading /= LIGHT_LOW_RANGE_GAIN;
 		// Then convert to pA
-		reading *= 10000;
+		reading *= 10;
 	}
 	else
 	{
@@ -337,35 +342,37 @@ uint32_t mg_adc_GetLight(void)
 	// If in low range and the reading is saturated, go to high range and take another reading
 	if( (lightRange == LIGHT_RANGE_LOW) && (reading > ( ( (100 - LIGHT_RANGE_THRESHOLD) * vBat ) / 100 ) ) )
 	{
-		lightRange = LIGHT_RANGE_HIGH;
-		HAL_Delay(LIGHT_SETTLE_TIME_MS);
-		reading = mg_adc_GetLightReading();
-		
 		#ifdef DEBUG_ADC
 		char AdcReadingString[50];
-		sprintf(AdcReadingString, "\n\rLIGHT_RANGE_HIGH");
+		sprintf(AdcReadingString, "\n\rLIGHT_RANGE_HIGH - new reading");
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		#endif
+		
+		lightRange = LIGHT_RANGE_HIGH;
+		mg_adc_SetLightRange(lightRange);
+		HAL_Delay(LIGHT_SETTLE_TIME_MS);
+		reading = mg_adc_GetLightReading();
+		reading = mg_adc_ConvertMv(reading, vBat);
 	}
 	// Else if in the high range and the reading is too low, go to low range and take another reading
-	else if( (lightRange == LIGHT_RANGE_HIGH) && (reading < (LIGHT_RANGE_THRESHOLD * vBat ) ) )
+	else if( (lightRange == LIGHT_RANGE_HIGH) && (reading < ( (LIGHT_RANGE_THRESHOLD * vBat ) / 100 ) ) )
 	{
-		lightRange = LIGHT_RANGE_LOW;
-		HAL_Delay(LIGHT_SETTLE_TIME_MS);
-		reading = mg_adc_GetLightReading();
-		
 		#ifdef DEBUG_ADC
 		char AdcReadingString[50];
-		sprintf(AdcReadingString, "\n\rLIGHT_RANGE_LOW");
+		sprintf(AdcReadingString, "\n\rLIGHT_RANGE_LOW - new reading");
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		#endif
+		
+		lightRange = LIGHT_RANGE_LOW;
+		mg_adc_SetLightRange(lightRange);
+		HAL_Delay(LIGHT_SETTLE_TIME_MS);
+		reading = mg_adc_GetLightReading();
+		reading = mg_adc_ConvertMv(reading, vBat);
 	}
-	// Else the reading is in range so convert to lux
-	else
-	{
-		// Convert to lux
-		reading = mg_adc_ConvertLight(reading, lightRange);
-	}
+	
+	// Convert to lux
+	reading = mg_adc_ConvertLight(reading, lightRange);
+	
 	
 	return reading;
 }
