@@ -247,14 +247,27 @@ void mg_adc_SetLightRange(LightRange_t range)
 /* Converts mV to lux */
 uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 {
-	// Convert to pA
+	
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight 1st = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Convert mV to pA (100R current sense resistor)
 	if(range == LIGHT_RANGE_HIGH)
 	{
-		reading = (reading*1000*1000 / 100);
+		// Divide by amplifier gain (101)
+		reading /= 101;
+		// Then convert to pA
+		reading *= 10000;
 	}
 	else if(range == LIGHT_RANGE_LOW)
 	{
-		reading = (reading*1000*10 / 100);
+		// Divide by amplifier gain (2)
+		reading /= 2;
+		// Then convert to pA
+		reading *= 10000;
 	}
 	else
 	{
@@ -266,13 +279,12 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 		while(1);
 	}
 	#ifdef DEBUG_ADC
-	char AdcReadingString[50];
 	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight pA = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
 	// Convert to lux
-	reading = reading / LUX_CONV_FACTOR_PA;
+	reading = reading / LUX_CONV_FACTOR_PA;  // 180
 	#ifdef DEBUG_ADC
 	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Lux = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
