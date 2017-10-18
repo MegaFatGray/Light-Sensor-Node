@@ -90,7 +90,7 @@ uint32_t mg_adc_GetRawReading(void)
 	
 	#ifdef DEBUG_ADC
 	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rRaw Reading = %d", AdcReading);
+	sprintf(AdcReadingString, "\n\rmg_adc_GetRawReading = %d", AdcReading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
@@ -111,7 +111,7 @@ uint32_t mg_adc_GetReading(void)
 	
 	#ifdef DEBUG_ADC
 	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rAveraged reading = %d", reading);
+	sprintf(AdcReadingString, "\n\rmg_adc_GetReading = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
@@ -125,7 +125,7 @@ uint32_t mg_adc_GetVbat(void)
 	ADC1->CHSELR = ADC_CHSELR_CHSEL17;
 	
 	// Get reading
-	uint32_t AdcReading = mg_adc_GetRawReading();
+	uint32_t AdcReading = mg_adc_GetReading();
 	
 	// Read internal reference voltage cal value
 	uint16_t vrefint_cal;
@@ -133,6 +133,13 @@ uint32_t mg_adc_GetVbat(void)
 	
 	// Calculate battery voltage
 	uint32_t Vbat = (3 * (vrefint_cal*1000 / AdcReading*1000)) / 1000;
+	
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rmg_adc_GetVbat = %d", Vbat);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
 	return Vbat;
 }
 
@@ -141,6 +148,13 @@ uint32_t mg_adc_ConvertMv(uint32_t reading, uint32_t vBat)
 {
 	// Convert to mV
 	reading = ((reading * ((vBat*1000) / ADC_RESOLUTION)) / 1000);
+	
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertMv = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
 	return reading;
 }
 
@@ -233,12 +247,6 @@ void mg_adc_SetLightRange(LightRange_t range)
 /* Converts mV to lux */
 uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 {
-	#ifdef DEBUG_ADC
-	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rreading = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
-	#endif
-	
 	// Convert to pA
 	if(range == LIGHT_RANGE_HIGH)
 	{
@@ -251,20 +259,22 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 	else
 	{
 		#ifdef DEBUG_ADC
-		sprintf(AdcReadingString, "\n\rError: range not valid");
+		char AdcReadingString[50];
+		sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Error: range not valid");
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		#endif
 		while(1);
 	}
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rreading_pA = %d", reading);
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight pA = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
 	// Convert to lux
 	reading = reading / LUX_CONV_FACTOR_PA;
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rreading_lux = %d", reading);
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Lux = %d", reading);
 	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 	#endif
 	
@@ -301,7 +311,7 @@ uint32_t mg_adc_GetLight(void)
 	static LightRange_t lightRange = LIGHT_RANGE_LOW;
 
 	// Take a reading of battery voltage for use throughout this function
-	//uint32_t vBat = mg_adc_GetVbat();
+	uint32_t vBat = mg_adc_GetVbat();
 	
 	// Set the range
 	mg_adc_SetLightRange(lightRange);
@@ -310,15 +320,20 @@ uint32_t mg_adc_GetLight(void)
 	uint32_t reading = mg_adc_GetLightReading();
 	
 	// Convert to mV
-	//reading = mg_adc_ConvertMv(reading, vBat);
+	reading = mg_adc_ConvertMv(reading, vBat);
 	
-	/*
 	// If in low range and the reading is saturated, go to high range and take another reading
 	if( (lightRange == LIGHT_RANGE_LOW) && (reading > ( ( (100 - LIGHT_RANGE_THRESHOLD) * vBat ) / 100 ) ) )
 	{
 		lightRange = LIGHT_RANGE_HIGH;
 		HAL_Delay(LIGHT_SETTLE_TIME_MS);
 		reading = mg_adc_GetLightReading();
+		
+		#ifdef DEBUG_ADC
+		char AdcReadingString[50];
+		sprintf(AdcReadingString, "\n\rLIGHT_RANGE_HIGH");
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		#endif
 	}
 	// Else if in the high range and the reading is too low, go to low range and take another reading
 	else if( (lightRange == LIGHT_RANGE_HIGH) && (reading < (LIGHT_RANGE_THRESHOLD * vBat ) ) )
@@ -326,6 +341,12 @@ uint32_t mg_adc_GetLight(void)
 		lightRange = LIGHT_RANGE_LOW;
 		HAL_Delay(LIGHT_SETTLE_TIME_MS);
 		reading = mg_adc_GetLightReading();
+		
+		#ifdef DEBUG_ADC
+		char AdcReadingString[50];
+		sprintf(AdcReadingString, "\n\rLIGHT_RANGE_LOW");
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		#endif
 	}
 	// Else the reading is in range so convert to lux
 	else
@@ -333,7 +354,6 @@ uint32_t mg_adc_GetLight(void)
 		// Convert to lux
 		reading = mg_adc_ConvertLight(reading, lightRange);
 	}
-	*/
 	
 	return reading;
 }

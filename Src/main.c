@@ -129,7 +129,7 @@ int main(void)
 		
 		/*
 		AdcReading = mg_adc_GetVbat();
-		sprintf(AdcReadingString, "\n\rADC Cal Vbat = %d", AdcReading);
+		sprintf(AdcReadingString, "\n\rADC Vbat = %d", AdcReading);
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		HAL_Delay(100);
 		*/
@@ -141,10 +141,12 @@ int main(void)
 		HAL_Delay(100);
 		*/
 		
+		
 		AdcReading = mg_adc_GetLight();
 		sprintf(AdcReadingString, "\n\rADC Light Reading = %d", AdcReading);
 		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
 		HAL_Delay(100);
+		
 		
   /* USER CODE END WHILE */
 
