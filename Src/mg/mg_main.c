@@ -1,6 +1,6 @@
 /** ***************************************************************************
-*   \file        mg_adc.c
-*   \brief       ADC functions
+*   \file        mg_main.c
+*   \brief       Top level program
 *
 *   \copyright   Copyright (C) : <company name> <creation date YYYY-MM-DD>
 *
@@ -12,9 +12,10 @@
 // standard libraries
  
 // user headers directly related to this component, ensures no dependency
-#include "mg_adc.h"
+#include "mg_main.h"
 #include "stm32l0xx_hal.h"
 #include "string.h"
+#include "mg_adc.h"
    
 // user headers from other components
   
@@ -23,7 +24,6 @@
   
 /*****************************************************************************/
 // typedefs
-HAL_StatusTypeDef AdcStatus;
   
 /*****************************************************************************/
 // structures
@@ -39,48 +39,28 @@ HAL_StatusTypeDef AdcStatus;
   
 /*****************************************************************************/
 // static variable declarations
-uint32_t PollForConversionTimeout = 1000;
 
 /*****************************************************************************/
 // variable declarations
-extern ADC_HandleTypeDef hadc;
 extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // functions
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+void mg_main_Main(void)
 {
-	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_ConvCpltCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-}
-
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)
-{
-	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_ErrorCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-}
+	char mystring1[] = "TEST PROGRAM";
+	HAL_UART_Transmit(&huart1, (uint8_t*)mystring1, strlen(mystring1), 500);
 	
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc)
-{
-	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_LevelOutOfWindowCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	mg_adc_StartReading();
+	
+	while(1)
+	{
+		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+		HAL_Delay(1000);
+	}
 }
 
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc)
-{
-	HAL_ADC_Stop_IT(hadc);
-	char debugString[50] 		= "\n\rHAL_ADC_ConvHalfCpltCallback";
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-}
-
-void mg_adc_StartReading(void)
-{
-	HAL_ADC_Start_IT(&hadc);
-}
 
 // close the Doxygen group
 /**

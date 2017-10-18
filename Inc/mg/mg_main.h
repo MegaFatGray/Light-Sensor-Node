@@ -1,6 +1,6 @@
 /** ***************************************************************************
-*   \file        Filename.h
-*   \brief       Brief description of the file
+*   \file        mg_main.h
+*   \brief       Top level program header file
 *
 *   \copyright   Copyright (C) : <company name> <creation date YYYY-MM-DD>
 *
@@ -8,8 +8,8 @@
 *   \{
 ******************************************************************************/
  
-#ifndef __MG_ADC_H
-#define __MG_ADC_H
+#ifndef __MG_MAIN_H
+#define __MG_MAIN_H
 /*****************************************************************************/
 // standard libraries first
  
@@ -35,19 +35,15 @@
   
 /*****************************************************************************/
 // function declarations
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc);
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
-void mg_adc_StartReading(void);
   
 /*****************************************************************************/
 // variables
   
 /*****************************************************************************/
 // functions
+void mg_main_Main(void);
   
-#endif /* __MG_ADC_H */
+#endif /* __MG_MAIN_H */
 // close the Doxygen group
 /**
 \}

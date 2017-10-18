@@ -41,8 +41,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "string.h"
-
-#include "mg_adc.h"
+#include "mg_main.h"
 
 /* USER CODE END Includes */
 
@@ -109,12 +108,7 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 	
-	char mystring1[] = "TEST PROGRAM";
-	HAL_UART_Transmit(&huart1, (uint8_t*)mystring1, strlen(mystring1), 500);
-	
-	HAL_GPIO_WritePin(LED_GRN_GPIO_Port, LED_GRN_Pin, GPIO_PIN_RESET);
-	
-	HAL_ADC_Start_IT(&hadc);
+	mg_main_Main();
 	
   /* USER CODE END 2 */
 
