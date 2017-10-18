@@ -38,6 +38,7 @@ typedef enum stateADC {
   
 /*****************************************************************************/
 // constants
+#define CONVERSION_AVG_WIDTH	3
 
 /*****************************************************************************/
 // macros
@@ -51,6 +52,7 @@ StateADC_t stateADC = ADC_STATE_IDLE;			// ADC state machine state variable
 bool flagStartConv 		= false;						// Flag to indicate if a new conversion should start
 bool flagConvComplete = false;						// Flag to indicate conversion is complete
 bool flagConvDone 		= false;						// Flag to indicate conversion is recorded
+uint8_t avgIndex;													// Counts the number of readings taken for averaging							
 
 /*****************************************************************************/
 // variable declarations
@@ -71,6 +73,7 @@ void mg_adc_StateMachine(void)
 				flagConvDone 	= false;							// Then clear data ready flag (if not already clear)
 				flagStartConv = false;							// Clear start conversion flag
 				HAL_ADC_Start_IT(&hadc);						// Then start the ADC
+				avgIndex = 0;												// Reset the average index
 				stateADC = ADC_STATE_CONVERTING;		// And go to converting state
 			}
 			break;
@@ -89,14 +92,39 @@ void mg_adc_StateMachine(void)
 		
 		case ADC_STATE_CONVERTED:
 		{
-			uint32_t reading = HAL_ADC_GetValue(&hadc);		// Read the conversion result
+			static uint32_t readingArray[CONVERSION_AVG_WIDTH];		// Array to store readings for averaging
+			
+			uint32_t reading = HAL_ADC_GetValue(&hadc);						// Read the conversion result
 			
 			char debugString[50];
 			sprintf(debugString, "\n\rReading = %d", reading);
 			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 			
-			flagConvDone = true;													// Flag that data is ready
-			stateADC = ADC_STATE_IDLE;										// And go back to idle state
+			readingArray[avgIndex] = reading;											// Store the reading for averaging later
+			avgIndex++;
+			
+			if(avgIndex >= (CONVERSION_AVG_WIDTH))						// If all the readings have been taken
+			{
+				uint32_t total = 0;
+				for(uint8_t i=0; i<CONVERSION_AVG_WIDTH; i++)				// Sum the readings
+				{
+					total += readingArray[i];
+				}
+				reading = total / CONVERSION_AVG_WIDTH;							// Average the readings
+				flagConvDone = true;																// Flag that data is ready
+				stateADC = ADC_STATE_IDLE;													// And go back to idle state
+				
+				char debugString[50];
+				sprintf(debugString, "\n\rAveraged reading = %d", reading);
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+			}
+			else																							// Else if there are more readings to take
+			{
+				HAL_ADC_Start_IT(&hadc);														// Then start the ADC again
+				stateADC = ADC_STATE_CONVERTING;										// And go back to converting state
+			}
+			
+			
 			break;
 		}
 		
