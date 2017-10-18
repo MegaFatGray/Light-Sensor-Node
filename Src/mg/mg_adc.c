@@ -276,11 +276,15 @@ uint32_t mg_adc_GetLightReading(void)
 	// Turn on power to ambient light sensor
 	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);
 	
+	// Record time at which output was enabled
+	uint32_t tickStart = HAL_GetTick();
+	
 	// Change ADC channel to light sensor pin
 	ADC1->CHSELR = ADC_CHSELR_CHSEL10;
 	
-	// Allow time for output to settle
-	HAL_Delay(LIGHT_SETTLE_TIME_MS);
+	// Wait for settle time to elapse
+	while( (HAL_GetTick() - tickStart) < LIGHT_SETTLE_TIME_MS )
+	{		}
 	
 	// Get reading
 	uint32_t reading = mg_adc_GetReading();
