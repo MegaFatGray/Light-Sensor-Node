@@ -42,7 +42,7 @@ typedef enum
 // function declarations
 uint32_t mg_adc_GetRawReading(void);
 uint32_t mg_adc_GetVbat(void);
-uint32_t mg_adc_ConvertMv(uint32_t reading);
+uint32_t mg_adc_ConvertMv(uint32_t reading, uint32_t vBat);
 uint32_t mg_adc_ScaleReadingTo3V(uint32_t reading);
 uint32_t mg_adc_GetTemp(void);
 void mg_adc_SetLightRange(LightRange_t range);

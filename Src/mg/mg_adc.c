@@ -31,12 +31,15 @@ HAL_StatusTypeDef AdcStatus;
   
 /*****************************************************************************/
 // constants
-#define VREFINT_CAL_ADDR    			0x1FF80078
-#define T_SENSE_CAL1_ADDR					0x1FF8007A
-#define T_SENSE_CAL2_ADDR					0x1FF8007E
-#define ADC_RESOLUTION						4096
-#define LIGHT_PWR_SETTLE_TIME_MS	1
-#define LUX_CONV_FACTOR_PA				180
+#define VREFINT_CAL_ADDR    			0x1FF80078		// Memory address of the VREFINT calibration value
+#define T_SENSE_CAL1_ADDR					0x1FF8007A		// Memory address of the TSENSECAL1 calibration value
+#define T_SENSE_CAL2_ADDR					0x1FF8007E		// Memory address of the TSENSECAL2 calibration value
+#define ADC_RESOLUTION						4096					// Resolution of the ADC
+#define LIGHT_SETTLE_TIME_MS			50						// Time in ms to allow the sensor output to settle
+#define LUX_CONV_FACTOR_PA				180						// Conversion factor for convting from pA to lux
+#define LIGHT_RANGE_THRESHOLD			5							// If the reading in low range is within this percentage of the battery voltage, use high range instead
+																								// If the reading in high range is within this percentage of the battery voltage above zero, use low range instead
+#define ADC_AVERAGE_WIDTH					5							// Number of ADC samples to average together for a single reading
 
 /*****************************************************************************/
 // macros
@@ -84,7 +87,35 @@ uint32_t mg_adc_GetRawReading(void)
 	
 	// Get reading
 	uint32_t AdcReading = HAL_ADC_GetValue(&hadc);
+	
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rRaw Reading = %d", AdcReading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
 	return AdcReading;
+}
+
+/* Returns an averaged ADC reading */
+uint32_t mg_adc_GetReading(void)
+{
+	uint32_t reading = 0;
+	
+	for(uint8_t i=0; i<ADC_AVERAGE_WIDTH; i++)
+	{
+		reading += mg_adc_GetRawReading();
+		HAL_Delay(1);
+	}
+	reading /= ADC_AVERAGE_WIDTH;
+	
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rAveraged reading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	return reading;
 }
 
 /* Returns battery voltage */
@@ -106,10 +137,9 @@ uint32_t mg_adc_GetVbat(void)
 }
 
 /* Converts raw ADC reading to mV */
-uint32_t mg_adc_ConvertMv(uint32_t reading)
+uint32_t mg_adc_ConvertMv(uint32_t reading, uint32_t vBat)
 {
 	// Convert to mV
-	uint32_t vBat = mg_adc_GetVbat();
 	reading = ((reading * ((vBat*1000) / ADC_RESOLUTION)) / 1000);
 	return reading;
 }
@@ -241,43 +271,65 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 	return reading;
 }
 
-/* Returns a reading in lux */
-uint32_t mg_adc_GetLight(void)
+uint32_t mg_adc_GetLightReading(void)
 {
-	static LightRange_t lightRange = LIGHT_RANGE_LOW;
-
-	// Set the range
-	mg_adc_SetLightRange(lightRange);
-	
 	// Turn on power to ambient light sensor
-	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);
 	
 	// Change ADC channel to light sensor pin
 	ADC1->CHSELR = ADC_CHSELR_CHSEL10;
 	
 	// Allow time for output to settle
-	HAL_Delay(LIGHT_PWR_SETTLE_TIME_MS);
+	HAL_Delay(LIGHT_SETTLE_TIME_MS);
 	
 	// Get reading
-	uint32_t reading = mg_adc_GetRawReading();
+	uint32_t reading = mg_adc_GetReading();
 	
 	// Turn off power to ambient light sensor
 	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);
 	
+	return reading;
+}
+
+/* Returns a reading in lux */
+uint32_t mg_adc_GetLight(void)
+{
+	static LightRange_t lightRange = LIGHT_RANGE_LOW;
+
+	// Take a reading of battery voltage for use throughout this function
+	//uint32_t vBat = mg_adc_GetVbat();
+	
+	// Set the range
+	mg_adc_SetLightRange(lightRange);
+	
+	// Get ADC reading
+	uint32_t reading = mg_adc_GetLightReading();
+	
 	// Convert to mV
-	reading = mg_adc_ConvertMv(reading);
+	//reading = mg_adc_ConvertMv(reading, vBat);
 	
-	// Check if the current range is appropriate
-	if(lightRange == LIGHT_RANGE_LOW)
+	/*
+	// If in low range and the reading is saturated, go to high range and take another reading
+	if( (lightRange == LIGHT_RANGE_LOW) && (reading > ( ( (100 - LIGHT_RANGE_THRESHOLD) * vBat ) / 100 ) ) )
 	{
-		if(reading < (mg_adc_GetVbat() / 100))
-		{
-			
-		}
+		lightRange = LIGHT_RANGE_HIGH;
+		HAL_Delay(LIGHT_SETTLE_TIME_MS);
+		reading = mg_adc_GetLightReading();
 	}
-	
-	// Convert to lux
-	reading = mg_adc_ConvertLight(reading, lightRange);
+	// Else if in the high range and the reading is too low, go to low range and take another reading
+	else if( (lightRange == LIGHT_RANGE_HIGH) && (reading < (LIGHT_RANGE_THRESHOLD * vBat ) ) )
+	{
+		lightRange = LIGHT_RANGE_LOW;
+		HAL_Delay(LIGHT_SETTLE_TIME_MS);
+		reading = mg_adc_GetLightReading();
+	}
+	// Else the reading is in range so convert to lux
+	else
+	{
+		// Convert to lux
+		reading = mg_adc_ConvertLight(reading, lightRange);
+	}
+	*/
 	
 	return reading;
 }
