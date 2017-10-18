@@ -14,6 +14,7 @@
 // standard libraries first
  
 // user headers directly related to this component, ensures no dependency
+#include "stm32l0xx_hal.h"
  
 // user headers from other components
  
@@ -34,6 +35,10 @@
   
 /*****************************************************************************/
 // function declarations
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
+void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
+void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc);
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
 void mg_adc_GetReading(void);
   
 /*****************************************************************************/

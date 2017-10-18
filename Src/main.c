@@ -112,8 +112,9 @@ int main(void)
 	char mystring1[] = "TEST PROGRAM";
 	HAL_UART_Transmit(&huart1, (uint8_t*)mystring1, strlen(mystring1), 500);
 	
-	HAL_NVIC_EnableIRQ(ADC1_COMP_IRQn);
+	HAL_GPIO_WritePin(LED_GRN_GPIO_Port, LED_GRN_Pin, GPIO_PIN_RESET);
 	
+	HAL_ADC_Start_IT(&hadc);
 	
   /* USER CODE END 2 */
 
@@ -121,15 +122,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		//char HereString[20] 		= "\n\rhere";
-		//HAL_UART_Transmit(&huart1, (uint8_t*)HereString, strlen(HereString), 500);
-		
 		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 		HAL_Delay(1000);
-		
-	  //mg_adc_GetReading();
-		HAL_ADC_Start_IT(&hadc);
-		
 		
 		
 		
@@ -217,10 +211,10 @@ static void MX_ADC_Init(void)
   hadc.Init.OversamplingMode = DISABLE;
   hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV1;
   hadc.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc.Init.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  hadc.Init.SamplingTime = ADC_SAMPLETIME_160CYCLES_5;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc.Init.ContinuousConvMode = ENABLE;
+  hadc.Init.ContinuousConvMode = DISABLE;
   hadc.Init.DiscontinuousConvMode = DISABLE;
   hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;

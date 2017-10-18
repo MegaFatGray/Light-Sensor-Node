@@ -68,3 +68,4 @@
 # !my_customized_scatter_file.sct
 
 MDK-ARM/RTE/_Light_Sensor_Node_Tx/RTE_Components.h
+*.scvd
