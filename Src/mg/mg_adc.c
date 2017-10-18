@@ -47,13 +47,10 @@ typedef enum stateADC {
   
 /*****************************************************************************/
 // static variable declarations
-StateADC_t stateADC = ADC_STATE_IDLE;	// ADC state machine state variable
-bool flagStartConv 		= false;				// Flag to indicate if a new conversion should start
-bool flagConvComplete = false;				// Flag to indicate conversion is complete
-
-
-
-uint32_t PollForConversionTimeout = 1000;
+StateADC_t stateADC = ADC_STATE_IDLE;			// ADC state machine state variable
+bool flagStartConv 		= false;						// Flag to indicate if a new conversion should start
+bool flagConvComplete = false;						// Flag to indicate conversion is complete
+bool flagConvDone 		= false;						// Flag to indicate conversion is recorded
 
 /*****************************************************************************/
 // variable declarations
@@ -71,8 +68,9 @@ void mg_adc_StateMachine(void)
 		{
 			if(flagStartConv)										// If a new conversion has been requested
 			{
+				flagConvDone 	= false;							// Then clear data ready flag (if not already clear)
+				flagStartConv = false;							// Clear start conversion flag
 				HAL_ADC_Start_IT(&hadc);						// Then start the ADC
-				flagStartConv = false;							// Reset flag
 				stateADC = ADC_STATE_CONVERTING;		// And go to converting state
 			}
 			break;
@@ -97,6 +95,7 @@ void mg_adc_StateMachine(void)
 			sprintf(debugString, "\n\rReading = %d", reading);
 			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 			
+			flagConvDone = true;													// Flag that data is ready
 			stateADC = ADC_STATE_IDLE;										// And go back to idle state
 			break;
 		}
