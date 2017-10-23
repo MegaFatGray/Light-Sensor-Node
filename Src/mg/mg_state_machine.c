@@ -49,8 +49,6 @@ typedef enum stateTop {
 /*****************************************************************************/
 // variable declarations
 extern UART_HandleTypeDef huart1;
-extern bool flagStartConv;
-extern bool flagConvDone;
   
 /*****************************************************************************/
 // functions
@@ -66,7 +64,7 @@ void mg_state_machine(void)
 			char myString[] = "Light Sensor Node";
 			HAL_UART_Transmit(&huart1, (uint8_t*)myString, strlen(myString), 500);
 
-			stateTop = AWAKE;																																// Jump into main program
+			stateTop = AWAKE;																														// Jump into main program
 			break;
 		}
 		
@@ -101,7 +99,6 @@ void mg_state_machine(void)
 
 			if( (HAL_GetTick() - lastTick) > SLEEP_PERIOD_MS )													// If the sleep period has elapsed
 			{
-				char debugString[50];
 				firstPass = true;																															// Set flag
 				stateTop = AWAKE;																															// And wake up
 			}

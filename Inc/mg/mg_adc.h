@@ -44,6 +44,8 @@ void mg_adc_StartReading(void);
   
 /*****************************************************************************/
 // variables
+extern bool flagStartConv;						// Flag to indicate if a new conversion should start
+extern bool flagConvDone; 						// Flag to indicate conversion is recorded
   
 /*****************************************************************************/
 // functions
