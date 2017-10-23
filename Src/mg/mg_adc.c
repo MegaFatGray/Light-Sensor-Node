@@ -30,7 +30,9 @@ typedef enum stateADC {
 	ADC_STATE_IDLE,									// Not doing anything
 	ADC_STATE_CONVERTING,						// Conversion in progress
 	ADC_STATE_CONVERTED,						// Conversion ready
-	ADC_STATE_ERROR									// ADC error state
+	ADC_STATE_ERROR,								// ADC error state
+	
+	ADC_STATE_NUM_STATES						// Number of states
 } StateADC_t;
   
 /*****************************************************************************/
@@ -48,11 +50,19 @@ typedef enum stateADC {
   
 /*****************************************************************************/
 // static variable declarations
-StateADC_t stateADC = ADC_STATE_IDLE;			// ADC state machine state variable
-bool flagStartConv 		= false;						// Flag to indicate if a new conversion should start
-bool flagConvComplete = false;						// Flag to indicate conversion is complete
-bool flagConvDone 		= false;						// Flag to indicate conversion is recorded
 uint8_t avgIndex;													// Counts the number of readings taken for averaging							
+StateADC_t stateADC = ADC_STATE_IDLE;			// ADC state machine state variable
+AdcExtFlags_t adcExtFlags;
+
+/* Flags for use within ADC state machine */
+typedef union {
+    struct
+    {
+        uint8_t flagConvComplete 	: 1;			// Flag to indicate conversion is complete
+    };
+    uint8_t adcIntFlags;
+} AdcIntFlags_t;
+AdcIntFlags_t adcIntFlags;
 
 /*****************************************************************************/
 // variable declarations
@@ -68,24 +78,24 @@ void mg_adc_StateMachine(void)
 	{
 		case ADC_STATE_IDLE:
 		{
-			if(flagStartConv)										// If a new conversion has been requested
+			if(adcExtFlags.flagStartConv)										// If a new conversion has been requested
 			{
-				flagConvDone 	= false;							// Then clear data ready flag (if not already clear)
-				flagStartConv = false;							// Clear start conversion flag
-				HAL_ADC_Start_IT(&hadc);						// Then start the ADC
-				avgIndex = 0;												// Reset the average index
-				stateADC = ADC_STATE_CONVERTING;		// And go to converting state
+				adcExtFlags.flagConvDone 	= false;							// Then clear data ready flag (if not already clear)
+				adcExtFlags.flagStartConv = false;							// Clear start conversion flag
+				HAL_ADC_Start_IT(&hadc);												// Then start the ADC
+				avgIndex = 0;																		// Reset the average index
+				stateADC = ADC_STATE_CONVERTING;								// And go to converting state
 			}
 			break;
 		}
 		
 		case ADC_STATE_CONVERTING:
 		{
-			if(flagConvComplete)								// If the conversion is complete
+			if(adcIntFlags.flagConvComplete)								// If the conversion is complete
 			{
-				HAL_ADC_Stop_IT(&hadc);							// Stop the ADC
-				flagConvComplete = false;						// Reset flag
-				stateADC = ADC_STATE_CONVERTED;			// And go to converted state
+				HAL_ADC_Stop_IT(&hadc);													// Stop the ADC
+				adcIntFlags.flagConvComplete = false;						// Reset flag
+				stateADC = ADC_STATE_CONVERTED;									// And go to converted state
 			}
 			break;
 		}
@@ -111,7 +121,7 @@ void mg_adc_StateMachine(void)
 					total += readingArray[i];
 				}
 				reading = total / CONVERSION_AVG_WIDTH;							// Average the readings
-				flagConvDone = true;																// Flag that data is ready
+				adcExtFlags.flagConvDone = true;										// Flag that data is ready
 				stateADC = ADC_STATE_IDLE;													// And go back to idle state
 				
 				char debugString[50];
@@ -144,7 +154,7 @@ void mg_adc_StateMachine(void)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	flagConvComplete = true;
+	adcIntFlags.flagConvComplete = true;
 }
 
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc)

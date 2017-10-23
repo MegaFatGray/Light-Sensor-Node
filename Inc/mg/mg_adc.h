@@ -44,6 +44,18 @@ void mg_adc_StartReading(void);
   
 /*****************************************************************************/
 // variables
+/* Flags for external control of ADC state machine */
+typedef union {
+    struct
+    {
+        uint8_t flagIdle			 			: 1;		// Flag to indicate ADC state machine is idle
+				uint8_t flagStartConv 			: 1;		// Flag to indicate a new conversion should start
+        uint8_t flagConvInProgress	: 1;		// Flag to indicate conversion is in progress
+        uint8_t flagConvDone 				: 1;		// Flag to indicate conversion is recorded
+    };
+    uint8_t adcExtFlags;
+} AdcExtFlags_t;
+extern AdcExtFlags_t adcExtFlags;
   
 /*****************************************************************************/
 // functions
