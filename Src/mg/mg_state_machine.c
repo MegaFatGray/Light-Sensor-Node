@@ -25,9 +25,12 @@
 /*****************************************************************************/
 // typedefs
 typedef enum stateTop {
-	INIT,									// Initialise
-	AWAKE,								// Awake - checking system status and acting accordingly
-	ASLEEP								// Sleeping
+	TOP_STATE_INIT,								// Initialise
+	TOP_STATE_AWAKE,							// Awake - checking system status and acting accordingly
+	TOP_STATE_ASLEEP,							// Sleeping
+	TOP_STATE_ERROR,							// Error state
+	
+	TOP_STATE_NUM_STATES 					// The number of states
 } State_t;
   
 /*****************************************************************************/
@@ -54,41 +57,45 @@ extern UART_HandleTypeDef huart1;
 // functions
 void mg_state_machine(void)
 {
-	static State_t stateTop = INIT;
+	static State_t stateTop = TOP_STATE_INIT;
 	static bool firstPass = true;
 	
 	switch(stateTop)
 	{
-		case INIT:
+		case TOP_STATE_INIT:
 		{
 			char myString[] = "Light Sensor Node";
 			HAL_UART_Transmit(&huart1, (uint8_t*)myString, strlen(myString), 500);
 
+<<<<<<< HEAD
 			stateTop = AWAKE;																														// Jump into main program
+=======
+			stateTop = TOP_STATE_AWAKE;																									// Jump into main program
+>>>>>>> ADC-Interrupts-FlagStruct
 			break;
 		}
 		
-		case AWAKE:
+		case TOP_STATE_AWAKE:
 		{
 			if(firstPass)																																// If this is the first pass
 			{
-				flagStartConv = true;																													// Flag a new conversion to start
+				adcExtFlags.flagStartConv = true;																							// Flag a new conversion to start
 				firstPass = false;																														// Reset flag
 			}
 			
 			mg_adc_StateMachine();																													// Kick ADC state machine
 			
-			if(flagConvDone)																														// If the data is ready
+			if(adcExtFlags.flagConvDone)									 															// If the data is ready
 			{
-				flagConvDone = false;																													// Clear the flag
+				adcExtFlags.flagConvDone = false;																							// Clear the flag
 				firstPass = true;																															// Set flag
-				stateTop = ASLEEP;																														// And go to sleep
+				stateTop = TOP_STATE_ASLEEP;																									// And go to sleep
 			}
 			
 			break;
 		}
 		
-		case ASLEEP:
+		case TOP_STATE_ASLEEP:
 		{
 			static uint32_t lastTick;
 			if(firstPass)
@@ -100,15 +107,27 @@ void mg_state_machine(void)
 			if( (HAL_GetTick() - lastTick) > SLEEP_PERIOD_MS )													// If the sleep period has elapsed
 			{
 				firstPass = true;																															// Set flag
-				stateTop = AWAKE;																															// And wake up
+				stateTop = TOP_STATE_AWAKE;																										// And wake up
 			}
 			
 			break;
 		}
 		
+		case TOP_STATE_ERROR:
+		{
+			// Intentional fall-through
+		}
+		
+		case TOP_STATE_NUM_STATES:
+		{
+			// Intentional fall-through
+		}
+		
 		default:
 		{
-			break;
+			char myString[] = "Error: Top state machine";
+			HAL_UART_Transmit(&huart1, (uint8_t*)myString, strlen(myString), 500);
+			while(1);
 		}
 		
 	}
