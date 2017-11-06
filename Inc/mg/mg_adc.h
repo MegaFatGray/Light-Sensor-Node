@@ -15,6 +15,8 @@
  
 // user headers directly related to this component, ensures no dependency
 #include "stm32l0xx_hal.h"
+
+#pragma anon_unions
  
 // user headers from other components
  

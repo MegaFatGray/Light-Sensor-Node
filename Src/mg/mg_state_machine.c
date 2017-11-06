@@ -52,8 +52,6 @@ typedef enum stateTop {
 /*****************************************************************************/
 // variable declarations
 extern UART_HandleTypeDef huart1;
-extern bool flagStartConv;
-extern bool flagConvDone;
   
 /*****************************************************************************/
 // functions
@@ -77,17 +75,17 @@ void mg_state_machine(void)
 		{
 			if(firstPass)																																// If this is the first pass
 			{
-				flagStartConv = true;																													// Flag a new conversion to start
+				adcExtFlags.flagStartConv = true;																							// Flag a new conversion to start
 				firstPass = false;																														// Reset flag
 			}
 			
 			mg_adc_StateMachine();																													// Kick ADC state machine
 			
-			if(flagConvDone)																														// If the data is ready
+			if(adcExtFlags.flagConvDone)									 															// If the data is ready
 			{
-				flagConvDone = false;																													// Clear the flag
+				adcExtFlags.flagConvDone = false;																							// Clear the flag
 				firstPass = true;																															// Set flag
-				stateTop = TOP_STATE_ASLEEP;																										// And go to sleep
+				stateTop = TOP_STATE_ASLEEP;																									// And go to sleep
 			}
 			
 			break;
