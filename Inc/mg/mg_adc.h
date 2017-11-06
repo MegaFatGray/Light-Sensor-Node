@@ -46,10 +46,8 @@ void mg_adc_StartReading(void);
   
 /*****************************************************************************/
 // variables
-<<<<<<< HEAD
 extern bool flagStartConv;						// Flag to indicate if a new conversion should start
 extern bool flagConvDone; 						// Flag to indicate conversion is recorded
-=======
 /* Flags for external control of ADC state machine */
 typedef union {
     struct
@@ -62,7 +60,6 @@ typedef union {
     uint8_t adcExtFlags;
 } AdcExtFlags_t;
 extern AdcExtFlags_t adcExtFlags;
->>>>>>> ADC-Interrupts-FlagStruct
   
 /*****************************************************************************/
 // functions

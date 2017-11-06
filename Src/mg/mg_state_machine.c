@@ -66,12 +66,7 @@ void mg_state_machine(void)
 		{
 			char myString[] = "Light Sensor Node";
 			HAL_UART_Transmit(&huart1, (uint8_t*)myString, strlen(myString), 500);
-
-<<<<<<< HEAD
-			stateTop = AWAKE;																														// Jump into main program
-=======
 			stateTop = TOP_STATE_AWAKE;																									// Jump into main program
->>>>>>> ADC-Interrupts-FlagStruct
 			break;
 		}
 		
