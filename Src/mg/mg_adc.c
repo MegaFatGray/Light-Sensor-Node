@@ -54,6 +54,13 @@ uint8_t avgIndex;													// Counts the number of readings taken for averagi
 StateADC_t stateADC = ADC_STATE_IDLE;			// ADC state machine state variable
 AdcExtFlags_t adcExtFlags;
 
+/* Light sensor range */
+typedef enum
+{
+	LIGHT_RANGE_HIGH,
+	LIGHT_RANGE_LOW
+} LightRange_t;
+
 /* Flags for use within ADC state machine */
 typedef union {
     struct
@@ -71,9 +78,45 @@ extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // functions
+/* Sets the light range on the ambient light sensor amplifier */
+void mg_adc_SetLightRange(LightRange_t range)
+{
+	switch (range)
+	{
+		case LIGHT_RANGE_HIGH:
+		{
+			// Set the range high
+			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_SET);
+			break;
+		}
+		
+		case LIGHT_RANGE_LOW:
+		{
+			// Set the range low
+			HAL_GPIO_WritePin(RANGE_GPIO_Port, RANGE_Pin, GPIO_PIN_RESET);
+			break;
+		}
+		
+		default:
+		{
+			#ifdef DEBUG_ADC
+			char AdcReadingString[50];
+			sprintf(AdcReadingString, "Error: range not valid");
+			HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+			#endif
+			while(1);
+		}
+	}
+}
+
 /* ADC system state machine */
 void mg_adc_StateMachine(void)
 {
+	LightRange_t LightRange = LIGHT_RANGE_LOW;															// Set range low
+	mg_adc_SetLightRange(LightRange);
+	HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);			// Turn on power to ambient light sensor
+	ADC1->CHSELR = ADC_CHSELR_CHSEL10;																			// Change ADC channel to light sensor pin
+	
 	switch(stateADC)
 	{
 		case ADC_STATE_IDLE:
