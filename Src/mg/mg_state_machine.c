@@ -57,8 +57,13 @@ extern UART_HandleTypeDef huart1;
 // functions
 void mg_state_machine(void)
 {
-	static State_t stateTop = TOP_STATE_INIT;
-	static bool firstPass = true;
+	static bool 	firstPass = true;
+	static 				State_t stateTop = TOP_STATE_INIT;
+	
+	static 				AdcControlFlags_t adcControlFlags = 								
+								{
+									.flagStart = 1
+								};
 	
 	switch(stateTop)
 	{
@@ -74,15 +79,15 @@ void mg_state_machine(void)
 		{
 			if(firstPass)																																// If this is the first pass
 			{
-				adcExtFlags.flagStartConv = true;																							// Flag a new conversion to start
+				adcControlFlags.flagStart = true;																							// Flag a new conversion to start
 				firstPass = false;																														// Reset flag
 			}
 			
-			mg_adc_StateMachine();																													// Kick ADC state machine
+			mg_adc_StateMachine(adcControlFlags);																				// Kick ADC state machine
 			
-			if(adcExtFlags.flagConvDone)									 															// If the data is ready
+			if(adcStatusFlags.flagComplete)									 														// If the data is ready
 			{
-				adcExtFlags.flagConvDone = false;																							// Clear the flag
+				adcStatusFlags.flagComplete = false;																					// Clear the flag
 				firstPass = true;																															// Set flag
 				stateTop = TOP_STATE_ASLEEP;																									// And go to sleep
 			}

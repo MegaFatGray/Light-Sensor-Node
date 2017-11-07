@@ -52,7 +52,8 @@ typedef enum stateADC {
 // static variable declarations
 uint8_t avgIndex;													// Counts the number of readings taken for averaging							
 StateADC_t stateADC = ADC_STATE_IDLE;			// ADC state machine state variable
-AdcExtFlags_t adcExtFlags;
+AdcControlFlags_t adcControlFlags;
+AdcStatusFlags_t adcStatusFlags;
 
 /* Light sensor range */
 typedef enum
@@ -60,6 +61,14 @@ typedef enum
 	LIGHT_RANGE_HIGH,
 	LIGHT_RANGE_LOW
 } LightRange_t;
+
+/* Flags for status of ADC state machine */
+static AdcStatusFlags_t adcStatusFlags = 
+{
+	.flagIdle					= 1,
+	.flagConverting		= 0,
+	.flagComplete			= 0
+};
 
 /* Flags for use within ADC state machine */
 typedef union {
@@ -69,6 +78,7 @@ typedef union {
     };
     uint8_t adcIntFlags;
 } AdcIntFlags_t;
+
 AdcIntFlags_t adcIntFlags;
 
 /*****************************************************************************/
@@ -110,7 +120,7 @@ void mg_adc_SetLightRange(LightRange_t range)
 }
 
 /* ADC system state machine */
-void mg_adc_StateMachine(void)
+AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 {
 	LightRange_t LightRange = LIGHT_RANGE_LOW;															// Set range low
 	mg_adc_SetLightRange(LightRange);
@@ -121,13 +131,13 @@ void mg_adc_StateMachine(void)
 	{
 		case ADC_STATE_IDLE:
 		{
-			if(adcExtFlags.flagStartConv)										// If a new conversion has been requested
+			if(adcControlFlags.flagStart)											// If a new conversion has been requested
 			{
-				adcExtFlags.flagConvDone 	= false;							// Then clear data ready flag (if not already clear)
-				adcExtFlags.flagStartConv = false;							// Clear start conversion flag
-				HAL_ADC_Start_IT(&hadc);												// Then start the ADC
-				avgIndex = 0;																		// Reset the average index
-				stateADC = ADC_STATE_CONVERTING;								// And go to converting state
+				adcStatusFlags.flagComplete 	= false;							// Then clear data ready flag (if not already clear)
+				adcControlFlags.flagStart 		= false;							// Clear start conversion flag
+				HAL_ADC_Start_IT(&hadc);														// Then start the ADC
+				avgIndex = 0;																				// Reset the average index
+				stateADC = ADC_STATE_CONVERTING;										// And go to converting state
 			}
 			break;
 		}
@@ -164,7 +174,7 @@ void mg_adc_StateMachine(void)
 					total += readingArray[i];
 				}
 				reading = total / CONVERSION_AVG_WIDTH;							// Average the readings
-				adcExtFlags.flagConvDone = true;										// Flag that data is ready
+				adcStatusFlags.flagComplete = true;									// Flag that data is ready
 				stateADC = ADC_STATE_IDLE;													// And go back to idle state
 				
 				char debugString[50];

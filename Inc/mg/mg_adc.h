@@ -37,12 +37,6 @@
   
 /*****************************************************************************/
 // function declarations
-void mg_adc_StateMachine(void);
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
-void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
-void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc);
-void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
-void mg_adc_StartReading(void);
   
 /*****************************************************************************/
 // variables
@@ -52,17 +46,34 @@ extern bool flagConvDone; 						// Flag to indicate conversion is recorded
 typedef union {
     struct
     {
-        uint8_t flagIdle			 			: 1;		// Flag to indicate ADC state machine is idle
-				uint8_t flagStartConv 			: 1;		// Flag to indicate a new conversion should start
-        uint8_t flagConvInProgress	: 1;		// Flag to indicate conversion is in progress
-        uint8_t flagConvDone 				: 1;		// Flag to indicate conversion is recorded
+        uint8_t flagStart 					: 1;		// Flag to indicate a new conversion should start
     };
-    uint8_t adcExtFlags;
-} AdcExtFlags_t;
-extern AdcExtFlags_t adcExtFlags;
+    uint8_t adcControlFlags;
+} AdcControlFlags_t;
+
+extern AdcControlFlags_t adcControlFlags;
+
+/* Flags for status of ADC state machine */
+typedef union {
+    struct
+    {
+			uint8_t flagIdle			 			: 1;		// Flag to indicate ADC state machine is idle
+      uint8_t flagConverting			: 1;		// Flag to indicate conversion is in progress
+      uint8_t flagComplete 				: 1;		// Flag to indicate conversion is recorded	
+    };
+    uint8_t adcStatusFlags;
+} AdcStatusFlags_t;
+
+extern AdcStatusFlags_t adcStatusFlags;
   
 /*****************************************************************************/
 // functions
+AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags);
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
+void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
+void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc);
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
+void mg_adc_StartReading(void);
   
 #endif /* __MG_ADC_H */
 // close the Doxygen group
