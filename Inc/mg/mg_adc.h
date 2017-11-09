@@ -40,13 +40,13 @@
   
 /*****************************************************************************/
 // variables
-extern bool flagStartConv;						// Flag to indicate if a new conversion should start
-extern bool flagConvDone; 						// Flag to indicate conversion is recorded
 /* Flags for external control of ADC state machine */
 typedef union {
     struct
     {
-        uint8_t flagStart 					: 1;		// Flag to indicate a new conversion should start
+			uint8_t getLight 						: 1;		// Flag to indicate a light sensor conversion is requested
+			uint8_t getTemp							: 1;		// Flag to indicate a temperature sensor conversion is requested
+			uint8_t getBat							: 1;		// Flag to indicate a battery voltage conversion is required
     };
     uint8_t adcControlFlags;
 } AdcControlFlags_t;

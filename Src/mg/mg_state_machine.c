@@ -62,7 +62,9 @@ void mg_state_machine(void)
 	
 	static 				AdcControlFlags_t adcControlFlags = 								
 								{
-									.flagStart = 1
+									.getLight = 1,
+									.getTemp	= 0,
+									.getBat		= 0
 								};
 	
 	switch(stateTop)
@@ -79,7 +81,7 @@ void mg_state_machine(void)
 		{
 			if(firstPass)																																// If this is the first pass
 			{
-				adcControlFlags.flagStart = true;																							// Flag a new conversion to start
+				adcControlFlags.getLight = true;																							// Flag a new conversion to start
 				firstPass = false;																														// Reset flag
 			}
 			
