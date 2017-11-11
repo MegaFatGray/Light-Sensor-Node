@@ -44,9 +44,11 @@
 typedef union {
     struct
     {
+			uint8_t start								:	1;		// Flag to indicate a conversion should start
 			uint8_t getLight 						: 1;		// Flag to indicate a light sensor conversion is requested
 			uint8_t getTemp							: 1;		// Flag to indicate a temperature sensor conversion is requested
 			uint8_t getBat							: 1;		// Flag to indicate a battery voltage conversion is required
+			uint8_t reset								: 1;		// Flag to indicate the ADC state machine should reset (clear data, go idle)
     };
     uint8_t adcControlFlags;
 } AdcControlFlags_t;
@@ -64,7 +66,7 @@ typedef union {
     uint8_t adcStatusFlags;
 } AdcStatusFlags_t;
 
-extern AdcStatusFlags_t adcStatusFlags;
+//extern AdcStatusFlags_t adcStatusFlags;
   
 /*****************************************************************************/
 // functions

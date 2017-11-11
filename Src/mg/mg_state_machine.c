@@ -62,9 +62,11 @@ void mg_state_machine(void)
 	
 	static 				AdcControlFlags_t adcControlFlags = 								
 								{
-									.getLight = 1,
+									.start		= 0,
+									.getLight = 0,
 									.getTemp	= 0,
-									.getBat		= 0
+									.getBat		= 0,
+									.reset		= 0
 								};
 	
 	switch(stateTop)
@@ -81,15 +83,15 @@ void mg_state_machine(void)
 		{
 			if(firstPass)																																// If this is the first pass
 			{
-				adcControlFlags.getLight = true;																							// Flag a new conversion to start
-				firstPass = false;																														// Reset flag
+				adcControlFlags.getLight 	= true;																							// Set the light conversion request flag
+				adcControlFlags.start 		= true;																							// Set the start conversion flag
+				firstPass = false;																														// Reset first pass flag
 			}
 			
-			mg_adc_StateMachine(adcControlFlags);																				// Kick ADC state machine
+			AdcStatusFlags_t adcStatusFlags = mg_adc_StateMachine(adcControlFlags);			// Kick ADC state machine
 			
 			if(adcStatusFlags.flagComplete)									 														// If the data is ready
 			{
-				adcStatusFlags.flagComplete = false;																					// Clear the flag
 				firstPass = true;																															// Set flag
 				stateTop = TOP_STATE_ASLEEP;																									// And go to sleep
 			}

@@ -27,7 +27,8 @@
 HAL_StatusTypeDef AdcStatus;
 
 typedef enum stateADC {
-	ADC_STATE_IDLE,									// Not doing anything
+	ADC_STATE_IDLE,									// Ready
+	ADC_STATE_CONVERTING,						// Between conversions
 	ADC_STATE_CONVERTING_LIGHT,			// Light sensor conversion in progress
 	ADC_STATE_CONVERTING_TEMP,			// Tempature sensor conversion in progress
 	ADC_STATE_CONVERTING_BAT,				// Battery votage conversion in progress
@@ -62,14 +63,6 @@ typedef enum
 	LIGHT_RANGE_LOW
 } LightRange_t;
 
-/* Flags for status of ADC state machine */
-AdcStatusFlags_t adcStatusFlags = 
-{
-	.flagIdle					= 1,
-	.flagConverting		= 0,
-	.flagComplete			= 0
-};
-
 /* Flags for use within ADC state machine */
 typedef union {
     struct
@@ -85,7 +78,8 @@ AdcIntFlags_t adcIntFlags;
 // variable declarations
 extern ADC_HandleTypeDef hadc;
 extern UART_HandleTypeDef huart1;
-uint8_t avgIndex;														// Counts the number of readings taken for averaging
+uint8_t readingArray[CONVERSION_AVG_WIDTH];							// Array to store readings
+uint8_t avgIndex;																				// Counts the number of readings taken for averaging
   
 /*****************************************************************************/
 // functions
@@ -120,6 +114,41 @@ void mg_adc_SetLightRange(LightRange_t range)
 	}
 }
 
+/* Function to store last ADC reading */
+void mg_adc_StoreReading(void)
+{
+	HAL_ADC_Stop_IT(&hadc);																									// Stop the ADC
+	adcIntFlags.flagConvComplete = false;																		// Reset flag
+	uint8_t reading = HAL_ADC_GetValue(&hadc);															// Read the conversion result
+	
+	char debugString[50];
+	sprintf(debugString, "\n\rReading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	
+	readingArray[avgIndex] = reading;																				// Store the reading
+	avgIndex++;
+}
+
+/* Function to average ADC readings */
+uint8_t mg_adc_AverageReadings(uint8_t readings[])
+{
+	uint8_t readingAvg;
+	uint8_t readingSize = sizeof(*readings);
+	uint32_t total = 0;
+	
+	for(uint8_t i=0; i<readingSize; i++)															// Sum the readings
+	{
+		total += readings[i];
+	}
+	readingAvg = total / readingSize;																	// Average the readings
+	
+	char debugString[50];
+	sprintf(debugString, "\n\rAveraged reading = %d", readingAvg);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	
+	return readingAvg;
+}
+
 /* Function to change state */
 void mg_adc_ChangeState(StateADC_t newState)
 {
@@ -130,27 +159,50 @@ void mg_adc_ChangeState(StateADC_t newState)
 /* ADC system state machine */
 AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 {
+	AdcControlFlags_t adcControlFlagsLocal;
+	
+	AdcStatusFlags_t adcStatusFlags = 
+	{
+		.flagIdle					= 1,
+		.flagConverting		= 0,
+		.flagComplete			= 0
+	};
+	
 	switch(stateADC)
 	{
 		case ADC_STATE_IDLE:
 		{
-			if(adcControlFlags.getLight)											// If a new light sensor conversion has been requested
+			if(adcControlFlags.start)													// If a new conversion should start
 			{
-				adcStatusFlags.flagComplete 	= false;							// Then clear data ready flag (if not already clear)
-				adcControlFlags.getLight 			= false;							// Clear start conversion flag
-				mg_adc_ChangeState(ADC_STATE_CONVERTING_LIGHT);			// And go to converting state
+				adcStatusFlags.flagIdle = 0;												// Then set the status flags to busy
+				adcStatusFlags.flagConverting = 1;
+				adcStatusFlags.flagComplete = 0;
+				adcControlFlagsLocal = adcControlFlags;							// Copy the control flags locally
+				mg_adc_ChangeState(ADC_STATE_CONVERTING);						// And go to converting state
 			}
-			else if(adcControlFlags.getTemp)									// If a new temperature sensor conversion has been requested
+			break;
+		}
+		
+		case ADC_STATE_CONVERTING:
+		{
+			if(adcControlFlagsLocal.getLight)									// If a new light sensor conversion has been requested
 			{
-				adcStatusFlags.flagComplete 	= false;							// Then clear data ready flag (if not already clear)
-				adcControlFlags.getTemp 			= false;							// Clear start conversion flag
-				mg_adc_ChangeState(ADC_STATE_CONVERTING_TEMP);			// And go to converting state
+				mg_adc_ChangeState(ADC_STATE_CONVERTING_LIGHT);			// Go to converting state
 			}
-			else if(adcControlFlags.getBat)										// If a new battery voltage conversion has been requested
+			else if(adcControlFlagsLocal.getTemp)							// If a new temperature sensor conversion has been requested
 			{
-				adcStatusFlags.flagComplete 	= false;							// Then clear data ready flag (if not already clear)
-				adcControlFlags.getBat 				= false;							// Clear start conversion flag
-				mg_adc_ChangeState(ADC_STATE_CONVERTING_BAT);				// And go to converting state
+				mg_adc_ChangeState(ADC_STATE_CONVERTING_TEMP);			// Go to converting state
+			}
+			else if(adcControlFlagsLocal.getBat)							// If a new battery voltage conversion has been requested
+			{
+				mg_adc_ChangeState(ADC_STATE_CONVERTING_BAT);				// Go to converting state
+			}
+			else																							// Else if all flags are cleared
+			{
+				adcStatusFlags.flagIdle = 0;												// Then set the status flags to complete
+				adcStatusFlags.flagConverting = 0;									
+				adcStatusFlags.flagComplete = 1;
+				mg_adc_ChangeState(ADC_STATE_CONVERTED);						// And go to converted state
 			}
 			break;
 		}
@@ -163,41 +215,38 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 				mg_adc_SetLightRange(LightRange);
 				HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);			// Turn on power to ambient light sensor
 				ADC1->CHSELR = ADC_CHSELR_CHSEL10;																			// Change ADC channel to light sensor pin
+				memset(&readingArray[0], 0, sizeof(readingArray));											// Clear the array contents
 				avgIndex = 0;																														// Reset the average index
 				firstPass = 0;																													// Clear firstPass flag
 				HAL_ADC_Start_IT(&hadc);																								// Then start the ADC
 			}
 			if(adcIntFlags.flagConvComplete)																			// If the conversion is complete
 			{
-				HAL_ADC_Stop_IT(&hadc);																									// Stop the ADC
-				adcIntFlags.flagConvComplete = false;																		// Reset flag
 				
-				static uint32_t readingArray[CONVERSION_AVG_WIDTH];											// Array to store readings for averaging
-				uint32_t reading = HAL_ADC_GetValue(&hadc);															// Read the conversion result
-			
+				uint8_t sizeBefore = sizeof(readingArray);
 				char debugString[50];
-				sprintf(debugString, "\n\rReading = %d", reading);
+				sprintf(debugString, "\n\rArray size = %d", sizeBefore);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-			
-				readingArray[avgIndex] = reading;																				// Store the reading for averaging later
-				avgIndex++;
-			
-				if(avgIndex >= (CONVERSION_AVG_WIDTH))																	// If all the readings have been taken
+				
+				
+				
+				mg_adc_StoreReading();																									// Store the reading into the array
+				
+				
+				
+				uint8_t sizeAfter = sizeof(readingArray);
+				//char debugString[50];
+				sprintf(debugString, "\n\rArray size = %d", sizeAfter);
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				
+				
+				if(sizeof(readingArray) >= CONVERSION_AVG_WIDTH)												// If all the readings have been taken
 				{
-					uint32_t total = 0;
-					for(uint8_t i=0; i<CONVERSION_AVG_WIDTH; i++)															// Sum the readings
-					{
-						total += readingArray[i];
-					}
-					reading = total / CONVERSION_AVG_WIDTH;																		// Average the readings
-					
-					char debugString[50];
-					sprintf(debugString, "\n\rAveraged reading = %d", reading);
-					HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-					
-					
-					mg_adc_ChangeState(ADC_STATE_CONVERTED);
+					uint8_t readingAvg = mg_adc_AverageReadings(readingArray);								// Then average the readings
+					adcControlFlagsLocal.getLight = false;																		// Clear light conversion flag
+					mg_adc_ChangeState(ADC_STATE_CONVERTING);																	// And go back to converting state
 				}
+				
 				else																																		// Else if there are more readings to take
 				{
 					mg_adc_ChangeState(ADC_STATE_CONVERTING_LIGHT);														// Then take another conversion
@@ -208,16 +257,24 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		
 		case ADC_STATE_CONVERTING_TEMP:
 		{
+			adcControlFlagsLocal.getTemp = false;																			// Clear temperature conversion flag
+			mg_adc_ChangeState(ADC_STATE_CONVERTING);																	// And go back to converting state
 			break;
 		}
 		
 		case ADC_STATE_CONVERTING_BAT:
 		{
+			adcControlFlagsLocal.getBat = false;																			// Clear battery conversion flag
+			mg_adc_ChangeState(ADC_STATE_CONVERTING);																	// And go back to converting state
 			break;
 		}
 		
 		case ADC_STATE_CONVERTED:
 		{
+			if(adcControlFlags.reset)																									// If a reset has been requested
+			{
+				mg_adc_ChangeState(ADC_STATE_IDLE);																					// Go to idle state
+			}
 			break;
 		}
 		
