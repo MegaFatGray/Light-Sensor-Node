@@ -43,7 +43,8 @@ typedef enum stateADC {
   
 /*****************************************************************************/
 // constants
-#define CONVERSION_AVG_WIDTH	3
+#define CONVERSION_AVG_WIDTH			3
+#define VREFINT_CAL_ADDR    			0x1FF80078		// Memory address of the VREFINT calibration value
 
 /*****************************************************************************/
 // macros
@@ -94,6 +95,7 @@ AdcIntFlags_t adcIntFlags;
 // variable declarations
 extern ADC_HandleTypeDef hadc;
 extern UART_HandleTypeDef huart1;
+uint32_t vRef;
 
 /*****************************************************************************/
 // functions
@@ -129,7 +131,7 @@ void mg_adc_SetLightRange(LightRange_t range)
 }
 
 /* Function to take a raw reading */
-ConvStatus_t mg_adc_Convert(uint8_t *reading)
+ConvStatus_t mg_adc_Convert(uint32_t *reading)
 {
 	static ConvStatus_t status;
 	
@@ -161,12 +163,12 @@ ConvStatus_t mg_adc_Convert(uint8_t *reading)
 }
 
 /* Function to acquire raw readings and calculate average */
-ReadStatus_t mg_adc_GetReading(uint8_t reading)
+ReadStatus_t mg_adc_GetReading(uint32_t *reading)
 {
 	static ReadStatus_t status;
-	static uint8_t convArray[CONVERSION_AVG_WIDTH];
+	static uint32_t convArray[CONVERSION_AVG_WIDTH];
 	static uint8_t avgIndex;
-	uint8_t conversion;
+	uint32_t conversion;
 	
 	if(status == READ_IDLE)																			// If a new reading is requested
 	{
@@ -189,25 +191,40 @@ ReadStatus_t mg_adc_GetReading(uint8_t reading)
 			
 			if(avgIndex >= CONVERSION_AVG_WIDTH)														// If all the conversions have been taken
 			{
-				uint8_t reading;																									// Averaged reading
-				uint8_t convArraySize = sizeof(convArray) - 1;										// Size of array (minus null character)
-				uint32_t total = 0;																								// Sum of conversions
+				uint32_t conversionAvg;
+				uint8_t convArraySize = ( sizeof(convArray) / sizeof(convArray[0]) );
+				uint32_t total = 0;
 				
 				for(uint8_t i=0; i<convArraySize; i++)														// Sum the conversions
 				{
 					total += convArray[i];
 				}
-				reading = total / convArraySize;																	// Average the conversions
+				conversionAvg = total / convArraySize;														// Average the conversions
+				*reading = conversionAvg;																					// Copy the result into the argument pointer
 				status = READ_DONE;																								// And set the status
 				
 				char debugString[50];
-				sprintf(debugString, "\n\rAveraged reading = %d", reading);
+				sprintf(debugString, "\n\rAveraged reading = %d", *reading);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 			}
 		}
 	}
 	return status;
 }
+
+/* Function to calculate battery voltage from the internal bandgap reference voltage */
+uint32_t mg_adc_GetBatVoltage(uint32_t *bandgapReading)
+{
+	uint16_t vrefint_cal = *((uint16_t*)VREFINT_CAL_ADDR);															// Read internal reference voltage cal value
+	uint32_t Vbat = (3 * (vrefint_cal*1000 / *bandgapReading*1000)) / 1000;							// Calculate battery voltage
+	
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rVbat = %d", Vbat);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	
+	return Vbat;
+}
+
 
 /* Function to change state */
 void mg_adc_ChangeState(StateADC_t newState)
@@ -228,6 +245,8 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		.flagComplete			= 0
 	};
 	
+	static uint32_t reading;
+	
 	switch(stateADC)
 	{
 		case ADC_STATE_IDLE:
@@ -238,7 +257,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 				adcStatusFlags.flagConverting = 1;
 				adcStatusFlags.flagComplete = 0;
 				adcControlFlagsLocal = adcControlFlags;							// Copy the control flags locally
-				mg_adc_ChangeState(ADC_STATE_CONVERTING);						// And go to converting state
+				mg_adc_ChangeState(ADC_STATE_CONVERTING_BAT);				// Always start by converting battery voltage (need Vref for all other sensors)
 			}
 			break;
 		}
@@ -252,10 +271,6 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 			else if(adcControlFlagsLocal.getTemp)							// If a new temperature sensor conversion has been requested
 			{
 				mg_adc_ChangeState(ADC_STATE_CONVERTING_TEMP);			// Go to converting state
-			}
-			else if(adcControlFlagsLocal.getBat)							// If a new battery voltage conversion has been requested
-			{
-				mg_adc_ChangeState(ADC_STATE_CONVERTING_BAT);				// Go to converting state
 			}
 			else																							// Else if all flags are cleared
 			{
@@ -278,8 +293,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 				firstPass = 0;																													// Clear firstPass flag
 			}
 			
-			static uint8_t reading;
-			ReadStatus_t readStatus = mg_adc_GetReading(reading);									// Kick the reading state machine
+			ReadStatus_t readStatus = mg_adc_GetReading(&reading);								// Kick the reading state machine
 			
 			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
@@ -291,15 +305,38 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		
 		case ADC_STATE_CONVERTING_TEMP:
 		{
-			adcControlFlagsLocal.getTemp = false;																			// Clear temperature conversion flag
-			mg_adc_ChangeState(ADC_STATE_CONVERTING);																	// And go back to converting state
+			if(firstPass)																													// If this is the first pass through
+			{
+				ADC1->CHSELR = ADC_CHSELR_CHSEL18;																			// Change ADC channel to internal temperature sensor
+				firstPass = 0;																													// Clear firstPass flag
+			}
+			
+			ReadStatus_t readStatus = mg_adc_GetReading(&reading);								// Kick the reading state machine
+			
+			if(readStatus == READ_DONE)																						// If the reading is complete
+			{
+				adcControlFlagsLocal.getTemp = false;																		// Clear temperature conversion flag
+				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
+			}
 			break;
 		}
 		
 		case ADC_STATE_CONVERTING_BAT:
 		{
-			adcControlFlagsLocal.getBat = false;																			// Clear battery conversion flag
-			mg_adc_ChangeState(ADC_STATE_CONVERTING);																	// And go back to converting state
+			if(firstPass)																													// If this is the first pass through
+			{
+				ADC1->CHSELR = ADC_CHSELR_CHSEL17;																			// Change ADC channel to internal bandgap reference voltage
+				firstPass = 0;																													// Clear firstPass flag
+			}
+			
+			ReadStatus_t readStatus = mg_adc_GetReading(&reading);								// Kick the reading state machine
+			
+			if(readStatus == READ_DONE)																						// If the reading is complete
+			{
+				vRef = mg_adc_GetBatVoltage(&reading);																	// Find battery voltage
+				adcControlFlagsLocal.getBat = false;																		// Clear internal bandgap voltage conversion flag
+				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
+			}
 			break;
 		}
 		
