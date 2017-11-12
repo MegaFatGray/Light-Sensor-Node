@@ -31,7 +31,7 @@ typedef enum stateTop {
 	TOP_STATE_ERROR,							// Error state
 	
 	TOP_STATE_NUM_STATES 					// The number of states
-} State_t;
+} StateTop_t;
   
 /*****************************************************************************/
 // structures
@@ -51,15 +51,23 @@ typedef enum stateTop {
 
 /*****************************************************************************/
 // variable declarations
-extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef 	huart1;
+bool 												firstPass 	= true;
+StateTop_t 									stateTop 		= TOP_STATE_INIT;
   
 /*****************************************************************************/
 // functions
+
+/* Function to change state */
+void mg_state_machine_ChangeState(StateTop_t newState)
+{
+	firstPass	= true;
+	stateTop  = newState;
+}
+
+/* Top level state machine */
 void mg_state_machine(void)
 {
-	static bool 	firstPass = true;
-	static 				State_t stateTop = TOP_STATE_INIT;
-	
 	static 				AdcControlFlags_t adcControlFlags = 								
 								{
 									.start		= 0,
@@ -75,7 +83,7 @@ void mg_state_machine(void)
 		{
 			char myString[] = "Light Sensor Node";
 			HAL_UART_Transmit(&huart1, (uint8_t*)myString, strlen(myString), 500);
-			stateTop = TOP_STATE_AWAKE;																									// Jump into main program
+			mg_state_machine_ChangeState(TOP_STATE_AWAKE);															// Jump into main program
 			break;
 		}
 		
@@ -84,7 +92,10 @@ void mg_state_machine(void)
 			if(firstPass)																																// If this is the first pass
 			{
 				adcControlFlags.getLight 	= true;																							// Set the light conversion request flag
+				adcControlFlags.getTemp 	= false;																						// Clear the temperature conversion request flag
+				adcControlFlags.getBat 		= false;																						// Clear the battery conversion request flag
 				adcControlFlags.start 		= true;																							// Set the start conversion flag
+				adcControlFlags.reset 		= false;																						// Clear the reset flag
 				firstPass = false;																														// Reset first pass flag
 			}
 			
@@ -92,8 +103,15 @@ void mg_state_machine(void)
 			
 			if(adcStatusFlags.flagComplete)									 														// If the data is ready
 			{
-				firstPass = true;																															// Set flag
-				stateTop = TOP_STATE_ASLEEP;																									// And go to sleep
+				adcControlFlags.getLight 	= false;																						// Clear the light conversion request flag
+				adcControlFlags.getTemp 	= false;																						// Clear the temperature conversion request flag
+				adcControlFlags.getBat 		= false;																						// Clear the battery conversion request flag
+				adcControlFlags.start 		= false;																						// Clear the start conversion flag
+				adcControlFlags.reset 		= true;																							// Set the reset flag
+				
+				adcStatusFlags = mg_adc_StateMachine(adcControlFlags);												// Reset ADC state machine
+				
+				mg_state_machine_ChangeState(TOP_STATE_ASLEEP);																// And go to sleep
 			}
 			
 			break;
@@ -110,8 +128,7 @@ void mg_state_machine(void)
 
 			if( (HAL_GetTick() - lastTick) > SLEEP_PERIOD_MS )													// If the sleep period has elapsed
 			{
-				firstPass = true;																															// Set flag
-				stateTop = TOP_STATE_AWAKE;																										// And wake up
+				mg_state_machine_ChangeState(TOP_STATE_AWAKE);																// Wake up
 			}
 			
 			break;
