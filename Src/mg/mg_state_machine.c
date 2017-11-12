@@ -91,9 +91,9 @@ void mg_state_machine(void)
 		{
 			if(firstPass)																																// If this is the first pass
 			{
-				adcControlFlags.getLight 	= false;																							// Set the light conversion request flag
+				adcControlFlags.getLight 	= true;																							// Set the light conversion request flag
 				adcControlFlags.getTemp 	= false;																						// Clear the temperature conversion request flag
-				adcControlFlags.getBat 		= true;																						// Clear the battery conversion request flag
+				adcControlFlags.getBat 		= false;																						// Clear the battery conversion request flag
 				adcControlFlags.start 		= true;																							// Set the start conversion flag
 				adcControlFlags.reset 		= false;																						// Clear the reset flag
 				firstPass = false;																														// Reset first pass flag

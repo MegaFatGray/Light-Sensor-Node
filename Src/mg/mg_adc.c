@@ -43,8 +43,14 @@ typedef enum stateADC {
   
 /*****************************************************************************/
 // constants
+#define DEBUG_ADC
+
 #define CONVERSION_AVG_WIDTH			3
 #define VREFINT_CAL_ADDR    			0x1FF80078		// Memory address of the VREFINT calibration value
+#define ADC_RESOLUTION						4096					// Resolution of the ADC
+#define LIGHT_LOW_RANGE_GAIN			101						// Amplifier gain when in low range
+#define LIGHT_HIGH_RANGE_GAIN			2							// Amplifier gain when in high range
+#define LUX_CONV_FACTOR_PA				180						// Conversion factor for convting from pA to lux; output linear from 100,000 lux (18mA) to 1 lux (180pA)
 
 /*****************************************************************************/
 // macros
@@ -225,6 +231,68 @@ uint32_t mg_adc_GetBatVoltage(uint32_t *bandgapReading)
 	return Vbat;
 }
 
+/* Converts raw ADC reading to mV */
+uint32_t mg_adc_ConvertMv(uint32_t reading, uint32_t vBat)
+{
+	reading = ((reading * ((vBat*1000) / ADC_RESOLUTION)) / 1000);											// Convert to mV
+	
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertMv = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	
+	return reading;
+}
+
+/* Converts mV to lux */
+uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
+{
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight mV = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Convert mV to uV
+	reading *= 1000;
+	
+	// Convert uV to pA (100R current sense resistor): (uV/100 = uA) -> ((uV*10^3)/100 = pA) -> (mV*10 = pA) 
+	if(range == LIGHT_RANGE_HIGH)
+	{
+		// Divide by amplifier gain
+		reading /= LIGHT_HIGH_RANGE_GAIN;
+		// Then convert to pA
+		reading *= 10;
+	}
+	else if(range == LIGHT_RANGE_LOW)
+	{
+		// Divide by amplifier gain
+		reading /= LIGHT_LOW_RANGE_GAIN;
+		// Then convert to pA
+		reading *= 10;
+	}
+	else
+	{
+		#ifdef DEBUG_ADC
+		char AdcReadingString[50];
+		sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Error: range not valid");
+		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		#endif
+		while(1);
+	}
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight pA = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Convert to lux
+	reading = reading / LUX_CONV_FACTOR_PA;  // 180
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Lux = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	return reading;
+}
 
 /* Function to change state */
 void mg_adc_ChangeState(StateADC_t newState)
@@ -284,10 +352,11 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		
 		case ADC_STATE_CONVERTING_LIGHT:
 		{
+			static LightRange_t lightRange;
 			if(firstPass)																													// If this is the first pass through
 			{
-				LightRange_t LightRange = LIGHT_RANGE_LOW;															// Set range low
-				mg_adc_SetLightRange(LightRange);
+				lightRange = LIGHT_RANGE_LOW;																						// Set range low
+				mg_adc_SetLightRange(lightRange);
 				HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);			// Turn on power to ambient light sensor
 				ADC1->CHSELR = ADC_CHSELR_CHSEL10;																			// Change ADC channel to light sensor pin
 				firstPass = 0;																													// Clear firstPass flag
@@ -297,6 +366,8 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 			
 			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
+				uint32_t reading_mV  = mg_adc_ConvertMv(reading, vRef);									// Convert reading to mV
+				uint32_t reading_lux = mg_adc_ConvertLight(reading_mV, lightRange);			// Convert to lux
 				adcControlFlagsLocal.getLight = false;																	// Clear light conversion flag
 				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
 			}
@@ -342,9 +413,9 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		
 		case ADC_STATE_CONVERTED:
 		{
-			if(adcControlFlags.reset)																									// If a reset has been requested
+			if(adcControlFlags.reset)																							// If a reset has been requested
 			{
-				mg_adc_ChangeState(ADC_STATE_IDLE);																					// Go to idle state
+				mg_adc_ChangeState(ADC_STATE_IDLE);																			// Go to idle state
 			}
 			break;
 		}
