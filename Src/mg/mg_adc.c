@@ -63,6 +63,22 @@ typedef enum
 	LIGHT_RANGE_LOW
 } LightRange_t;
 
+/* Conversion status */
+typedef enum
+{
+	CONV_IDLE,
+	CONV_WAITING,
+	CONV_DONE
+} ConvStatus_t;
+
+/* Reading status */
+typedef enum
+{
+	READ_IDLE,
+	READ_WAITING,
+	READ_DONE
+} ReadStatus_t;
+
 /* Flags for use within ADC state machine */
 typedef union {
     struct
@@ -78,9 +94,7 @@ AdcIntFlags_t adcIntFlags;
 // variable declarations
 extern ADC_HandleTypeDef hadc;
 extern UART_HandleTypeDef huart1;
-uint8_t readingArray[CONVERSION_AVG_WIDTH];							// Array to store readings
-uint8_t avgIndex;																				// Counts the number of readings taken for averaging
-  
+
 /*****************************************************************************/
 // functions
 /* Sets the light range on the ambient light sensor amplifier */
@@ -114,39 +128,85 @@ void mg_adc_SetLightRange(LightRange_t range)
 	}
 }
 
-/* Function to store last ADC reading */
-void mg_adc_StoreReading(void)
+/* Function to take a raw reading */
+ConvStatus_t mg_adc_Convert(uint8_t *reading)
 {
-	HAL_ADC_Stop_IT(&hadc);																									// Stop the ADC
-	adcIntFlags.flagConvComplete = false;																		// Reset flag
-	uint8_t reading = HAL_ADC_GetValue(&hadc);															// Read the conversion result
+	static ConvStatus_t status;
 	
-	char debugString[50];
-	sprintf(debugString, "\n\rReading = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	if(status == CONV_IDLE)											// If a new conversion is requested
+	{
+		HAL_ADC_Start_IT(&hadc);											// Then start the ADC
+		status = CONV_WAITING;												// And set the status to waiting
+	}
+	else if(status == CONV_DONE)								// Else if the conversion is complete
+	{
+		status = CONV_IDLE;												// Then set the status to idle (this status allows the function to be run once after completion without starting a new conversion)
+	}
 	
-	readingArray[avgIndex] = reading;																				// Store the reading
-	avgIndex++;
+	if(status == CONV_WAITING)									// If we are waiting for a conversion
+	{
+		if(adcIntFlags.flagConvComplete)							// If the conversion is complete
+		{
+			HAL_ADC_Stop_IT(&hadc);													// Stop the ADC
+			*reading = HAL_ADC_GetValue(&hadc);							// Read the conversion result
+			adcIntFlags.flagConvComplete = false;						// Reset flag
+			status = CONV_DONE;															// And set the status to done
+			
+			char debugString[50];
+			sprintf(debugString, "\n\rConversion = %d", *reading);
+			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+		}
+	}
+	return status;
 }
 
-/* Function to average ADC readings */
-uint8_t mg_adc_AverageReadings(uint8_t readings[])
+/* Function to acquire raw readings and calculate average */
+ReadStatus_t mg_adc_GetReading(uint8_t reading)
 {
-	uint8_t readingAvg;
-	uint8_t readingSize = sizeof(readings) - 1;
-	uint32_t total = 0;
+	static ReadStatus_t status;
+	static uint8_t convArray[CONVERSION_AVG_WIDTH];
+	static uint8_t avgIndex;
+	uint8_t conversion;
 	
-	for(uint8_t i=0; i<readingSize; i++)															// Sum the readings
+	if(status == READ_IDLE)																			// If a new reading is requested
 	{
-		total += readings[i];
+		memset(&convArray[0], 0, sizeof(convArray));									// Clear the array contents
+		avgIndex = 0;																									// Reset the average index
+		status = READ_WAITING;																				// And set the status
 	}
-	readingAvg = total / readingSize;																	// Average the readings
+	else if(status == READ_DONE)																// Else if the conversion is complete
+	{
+		status = READ_IDLE;																						// Then set the status to idle (this status allows the function to be run once after completion without starting a new reading)
+	}
 	
-	char debugString[50];
-	sprintf(debugString, "\n\rAveraged reading = %d", readingAvg);
-	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-	
-	return readingAvg;
+	if(status == READ_WAITING)																	// If waiting for a conversion
+	{
+		ConvStatus_t convStatus = mg_adc_Convert(&conversion);				// Get conversion status
+		if(convStatus == CONV_DONE)																		// If conversion is complete
+		{
+			convArray[avgIndex] = conversion;																// Store the conversion
+			avgIndex++;																											// Increment array index
+			
+			if(avgIndex >= CONVERSION_AVG_WIDTH)														// If all the conversions have been taken
+			{
+				uint8_t reading;																									// Averaged reading
+				uint8_t convArraySize = sizeof(convArray) - 1;										// Size of array (minus null character)
+				uint32_t total = 0;																								// Sum of conversions
+				
+				for(uint8_t i=0; i<convArraySize; i++)														// Sum the conversions
+				{
+					total += convArray[i];
+				}
+				reading = total / convArraySize;																	// Average the conversions
+				status = READ_DONE;																								// And set the status
+				
+				char debugString[50];
+				sprintf(debugString, "\n\rAveraged reading = %d", reading);
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+			}
+		}
+	}
+	return status;
 }
 
 /* Function to change state */
@@ -215,29 +275,16 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 				mg_adc_SetLightRange(LightRange);
 				HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);			// Turn on power to ambient light sensor
 				ADC1->CHSELR = ADC_CHSELR_CHSEL10;																			// Change ADC channel to light sensor pin
-				memset(&readingArray[0], 0, sizeof(readingArray));											// Clear the array contents
-				avgIndex = 0;																														// Reset the average index
 				firstPass = 0;																													// Clear firstPass flag
 			}
 			
-			HAL_ADC_Start_IT(&hadc);																							// Start the ADC
+			static uint8_t reading;
+			ReadStatus_t readStatus = mg_adc_GetReading(reading);									// Kick the reading state machine
 			
-			if(adcIntFlags.flagConvComplete)																			// If the conversion is complete
+			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
-				mg_adc_StoreReading();																									// Store the reading into the array
-				
-				if(avgIndex >= CONVERSION_AVG_WIDTH)																		// If all the readings have been taken
-				{
-					uint8_t readingAvg = mg_adc_AverageReadings(readingArray);								// Then average the readings
-					adcControlFlagsLocal.getLight = false;																		// Clear light conversion flag
-					mg_adc_ChangeState(ADC_STATE_CONVERTING);																	// And go back to converting state
-				}
-				
-				else																																		// Else if there are more readings to take
-				{
-					mg_adc_ChangeState(ADC_STATE_CONVERTING_LIGHT);														// Then take another conversion
-					firstPass = false;																												// And clear the first pass flag so the array isn't reset
-				}
+				adcControlFlagsLocal.getLight = false;																	// Clear light conversion flag
+				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
 			}
 			break;
 		}
