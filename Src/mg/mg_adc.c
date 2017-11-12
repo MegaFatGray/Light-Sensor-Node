@@ -133,7 +133,7 @@ void mg_adc_StoreReading(void)
 uint8_t mg_adc_AverageReadings(uint8_t readings[])
 {
 	uint8_t readingAvg;
-	uint8_t readingSize = sizeof(*readings);
+	uint8_t readingSize = sizeof(readings) - 1;
 	uint32_t total = 0;
 	
 	for(uint8_t i=0; i<readingSize; i++)															// Sum the readings
@@ -218,29 +218,15 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 				memset(&readingArray[0], 0, sizeof(readingArray));											// Clear the array contents
 				avgIndex = 0;																														// Reset the average index
 				firstPass = 0;																													// Clear firstPass flag
-				HAL_ADC_Start_IT(&hadc);																								// Then start the ADC
 			}
+			
+			HAL_ADC_Start_IT(&hadc);																							// Start the ADC
+			
 			if(adcIntFlags.flagConvComplete)																			// If the conversion is complete
 			{
-				
-				uint8_t sizeBefore = sizeof(readingArray);
-				char debugString[50];
-				sprintf(debugString, "\n\rArray size = %d", sizeBefore);
-				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-				
-				
-				
 				mg_adc_StoreReading();																									// Store the reading into the array
 				
-				
-				
-				uint8_t sizeAfter = sizeof(readingArray);
-				//char debugString[50];
-				sprintf(debugString, "\n\rArray size = %d", sizeAfter);
-				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-				
-				
-				if(sizeof(readingArray) >= CONVERSION_AVG_WIDTH)												// If all the readings have been taken
+				if(avgIndex >= CONVERSION_AVG_WIDTH)																		// If all the readings have been taken
 				{
 					uint8_t readingAvg = mg_adc_AverageReadings(readingArray);								// Then average the readings
 					adcControlFlagsLocal.getLight = false;																		// Clear light conversion flag
@@ -250,6 +236,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 				else																																		// Else if there are more readings to take
 				{
 					mg_adc_ChangeState(ADC_STATE_CONVERTING_LIGHT);														// Then take another conversion
+					firstPass = false;																												// And clear the first pass flag so the array isn't reset
 				}
 			}
 			break;
