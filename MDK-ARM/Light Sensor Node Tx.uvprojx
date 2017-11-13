@@ -336,7 +336,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32L053xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;    ../Drivers/STM32L0xx_HAL_Driver/Inc;    ../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;    ../Drivers/CMSIS/Device/ST/STM32L0xx/Include;    ../Drivers/CMSIS/Include;    ..\Inc\mg</IncludePath>
+              <IncludePath>../Inc;     ../Drivers/STM32L0xx_HAL_Driver/Inc;     ../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;     ../Drivers/CMSIS/Device/ST/STM32L0xx/Include;     ../Drivers/CMSIS/Include;     ..\Inc\mg</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -549,6 +549,11 @@
               <FileName>mg_state_machine.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Src\mg\mg_state_machine.c</FilePath>
+            </File>
+            <File>
+              <FileName>mg_rtc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\mg\mg_rtc.c</FilePath>
             </File>
           </Files>
         </Group>
