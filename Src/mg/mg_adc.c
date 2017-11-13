@@ -428,15 +428,6 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 				uint32_t reading_mV  = mg_adc_ConvertMv(reading, vRef);											// Convert reading to mV
 				uint32_t reading_lux = mg_adc_ConvertLight(reading_mV, lightRange);					// Convert to lux
 				outputData->readingLight = reading_lux;																			// Copy into data output struct
-				
-								#ifdef DEBUG_ADC
-								char AdcReadingString[50];
-								sprintf(AdcReadingString, "\n\rlight = %d", outputData->readingLight);
-								HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
-								#endif
-				
-				
-				
 				adcControlFlagsLocal.getLight = false;																			// Clear light conversion flag
 				mg_adc_ChangeState(ADC_STATE_CONVERTING);																		// And go back to converting state
 			}

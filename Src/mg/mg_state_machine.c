@@ -120,19 +120,14 @@ void mg_state_machine(void)
 				adcStatusFlags = mg_adc_StateMachine(adcControlFlags, &adcData);							// Reset ADC state machine
 				
 				#ifdef DEBUG_TOP_SM
-				
-				uint32_t temp = adcData.readingLight;
-				
-				
 				char debugString[50];
-				sprintf(debugString, "\n\rLight = %d", temp);
+				sprintf(debugString, "\n\rLight = %d", adcData.readingLight);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 				sprintf(debugString, "\n\rTemp = %d", adcData.readingTemp);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 				sprintf(debugString, "\n\rBat = %d", adcData.readingBat);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 				#endif
-				
 				
 				mg_state_machine_ChangeState(TOP_STATE_ASLEEP);																// And go to sleep
 			}
