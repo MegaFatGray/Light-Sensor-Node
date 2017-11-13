@@ -12,6 +12,7 @@
 #define __MG_RTC_H
 /*****************************************************************************/
 // standard libraries first
+#include "stm32l0xx_hal.h"
  
 // user headers directly related to this component, ensures no dependency
  
@@ -35,7 +36,8 @@
 /*****************************************************************************/
 // function declarations
 void RTC_Set(void);
-void RTC_Get(void);
+void RTC_Get(RTC_DateTypeDef *date, RTC_TimeTypeDef *time);
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc);
 
   
 /*****************************************************************************/

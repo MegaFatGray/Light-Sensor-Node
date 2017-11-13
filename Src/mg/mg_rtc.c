@@ -61,18 +61,73 @@ void RTC_Set(void)
 	HAL_RTC_SetTime(&hrtc, &rtcTime, RTC_FORMAT_BIN);
 }
 
-void RTC_Get(void)
+void RTC_Get(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
 {
-	RTC_DateTypeDef rtcDate;
-	RTC_TimeTypeDef rtcTime;
-	
-	HAL_RTC_GetDate(&hrtc, &rtcDate, RTC_FORMAT_BIN);
-	HAL_RTC_GetTime(&hrtc, &rtcTime, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, date, RTC_FORMAT_BIN);
+	HAL_RTC_GetTime(&hrtc, time, RTC_FORMAT_BIN);
 	
 	#ifdef DEBUG_RTC_OUTPUTS
 	char rtcString[50];
-	sprintf(rtcString, "\n\r%d/%d/%d %d:%d:%d", rtcDate.Date, rtcDate.Month, rtcDate.Year, rtcTime.Hours, rtcTime.Minutes, rtcTime.Seconds);
+	sprintf(rtcString, "\n\r%d/%d/%d %d:%d:%d", date->Date, date->Month, date->Year, time->Hours, time->Minutes, time->Seconds);
 	HAL_UART_Transmit(&huart1, (uint8_t*)rtcString, strlen(rtcString), 500);
 	#endif
+}
+
+void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
+{
+	// Check if alarm A has triggered the interrupt
+	if(RTC->ISR & RTC_ISR_ALRAF)
+	{
+		RTC_DateTypeDef rtcDate;
+		RTC_TimeTypeDef rtcTime;
+		
+		/* Get the current time */
+		RTC_Get(&rtcDate, &rtcTime);
+		
+		/* Work out the next alarm interval */
+		const uint8_t alarmInterval[4] = { 15, 30, 45, 0 };
+		uint8_t intervalIndex = (rtcTime.Seconds / 15);
+		
+		/* Disable write protection for RTC registers */
+		RTC->WPR = 0xCA;
+		RTC->WPR = 0x53;
+		
+		/* Disable alarm A */
+		RTC->CR &= ~RTC_CR_ALRAE;
+		
+		/* Wait for alarm A write flag to be set */
+		while(!(RTC->ISR | RTC_ISR_ALRAWF)) {}
+		
+		/* Reconfigure alarm A */
+		RTC_AlarmTypeDef sAlarm;
+		sAlarm.AlarmTime.Hours = 0x0;
+		sAlarm.AlarmTime.Minutes = 0x0;
+		sAlarm.AlarmTime.Seconds = alarmInterval[intervalIndex];
+		sAlarm.AlarmTime.SubSeconds = 0x0;
+		sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+		sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
+		sAlarm.AlarmMask = RTC_ALARMMASK_DATEWEEKDAY|RTC_ALARMMASK_HOURS
+																|RTC_ALARMMASK_MINUTES;
+		sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+		sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+		sAlarm.AlarmDateWeekDay = 0x1;
+		sAlarm.Alarm = RTC_ALARM_A;
+		if (HAL_RTC_SetAlarm_IT(hrtc, &sAlarm, RTC_FORMAT_BIN) != HAL_OK)
+		{
+			_Error_Handler(__FILE__, __LINE__);
+		}
+		
+		/* Re-enable alarm A */
+		RTC->CR |= RTC_CR_ALRAE;
+		
+		/* Re-enable write protection for RTC registers */
+		RTC->WPR = 0xFF;
+		
+		#ifdef DEBUG_RTC_OUTPUTS
+		char myDateString[50];
+		sprintf(myDateString, "\n\rAlarm A interrupt fired");
+		HAL_UART_Transmit(&huart1, (uint8_t*)myDateString, strlen(myDateString), 500);
+		#endif
+	}
 }
 

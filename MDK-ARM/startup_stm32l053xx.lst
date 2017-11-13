@@ -387,7 +387,7 @@ ARM Macro Assembler    Page 6
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0+ --apcs=inter
 work --depend="light sensor node tx\startup_stm32l053xx.d" -o"light sensor node
  tx\startup_stm32l053xx.o" -I.\RTE\_Light_Sensor_Node_Tx -IC:\Keil_v5\ARM\PACK\
-ARM\CMSIS\5.0.1\CMSIS\Include -IC:\Keil_v5\ARM\PACK\Keil\STM32L0xx_DFP\1.6.0\De
+ARM\CMSIS\5.0.1\CMSIS\Include -IC:\Keil_v5\ARM\PACK\Keil\STM32L0xx_DFP\1.6.1\De
 
 
 
