@@ -38,6 +38,8 @@ typedef enum stateTop {
   
 /*****************************************************************************/
 // constants
+#define DEBUG_TOP_SM
+
 #define SLEEP_PERIOD_MS 1000
 
 /*****************************************************************************/
@@ -54,6 +56,12 @@ typedef enum stateTop {
 extern UART_HandleTypeDef 	huart1;
 bool 												firstPass 	= true;
 StateTop_t 									stateTop 		= TOP_STATE_INIT;
+AdcData_t adcData =
+	{
+		.readingLight		= 0,
+		.readingTemp		= 0,
+		.readingBat			= 0
+	};
   
 /*****************************************************************************/
 // functions
@@ -99,7 +107,7 @@ void mg_state_machine(void)
 				firstPass = false;																														// Reset first pass flag
 			}
 			
-			AdcStatusFlags_t adcStatusFlags = mg_adc_StateMachine(adcControlFlags);			// Kick ADC state machine
+			AdcStatusFlags_t adcStatusFlags = mg_adc_StateMachine(adcControlFlags, &adcData);		// Kick ADC state machine
 			
 			if(adcStatusFlags.flagComplete)									 														// If the data is ready
 			{
@@ -109,7 +117,22 @@ void mg_state_machine(void)
 				adcControlFlags.start 		= false;																						// Clear the start conversion flag
 				adcControlFlags.reset 		= true;																							// Set the reset flag
 				
-				adcStatusFlags = mg_adc_StateMachine(adcControlFlags);												// Reset ADC state machine
+				adcStatusFlags = mg_adc_StateMachine(adcControlFlags, &adcData);							// Reset ADC state machine
+				
+				#ifdef DEBUG_TOP_SM
+				
+				uint32_t temp = adcData.readingLight;
+				
+				
+				char debugString[50];
+				sprintf(debugString, "\n\rLight = %d", temp);
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				sprintf(debugString, "\n\rTemp = %d", adcData.readingTemp);
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				sprintf(debugString, "\n\rBat = %d", adcData.readingBat);
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
+				
 				
 				mg_state_machine_ChangeState(TOP_STATE_ASLEEP);																// And go to sleep
 			}

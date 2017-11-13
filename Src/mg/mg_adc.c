@@ -51,6 +51,8 @@ typedef enum stateADC {
 #define LIGHT_LOW_RANGE_GAIN			101						// Amplifier gain when in low range
 #define LIGHT_HIGH_RANGE_GAIN			2							// Amplifier gain when in high range
 #define LUX_CONV_FACTOR_PA				180						// Conversion factor for convting from pA to lux; output linear from 100,000 lux (18mA) to 1 lux (180pA)
+#define T_SENSE_CAL1_ADDR					0x1FF8007A		// Memory address of the TSENSECAL1 calibration value
+#define T_SENSE_CAL2_ADDR					0x1FF8007E		// Memory address of the TSENSECAL2 calibration value
 
 /*****************************************************************************/
 // macros
@@ -294,6 +296,56 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 	return reading;
 }
 
+/* Converts raw ADC reading to temperature 														*/
+/* 	- ADC sampling time must be >10us																	*/
+/*	- CubeMX configured for synchronous ADC clock with no prescalar		*/
+/* 	- System clock 16MHz																							*/
+/* 	- Therefore minimum of 160 clock cycles 													*/
+uint32_t mg_adc_GetTemp(uint32_t reading)
+{
+	#ifdef DEBUG_ADC
+	char AdcReadingString[50];
+	sprintf(AdcReadingString, "\n\rReading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Scale reading to cal values (Vdda=3V)
+	reading = ( reading * vRef ) / 3;					
+	reading /= 1000;
+	
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rScaled Reading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Read internal temperature cal values
+	uint16_t tSenseCal1;
+	tSenseCal1 = *((uint16_t*)T_SENSE_CAL1_ADDR);
+	
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rtSenseCal1 = %d", tSenseCal1);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	uint16_t tSenseCal2;
+	tSenseCal2 = *((uint16_t*)T_SENSE_CAL2_ADDR);
+	
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rtSenseCal2 = %d", tSenseCal2);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	// Calculate temperature
+	uint32_t tempDegC = ( ( ( (130-30)*1000 ) / (tSenseCal2 - tSenseCal1) ) * (reading - tSenseCal1) / 1000 ) + 30;
+	
+	#ifdef DEBUG_ADC
+	sprintf(AdcReadingString, "\n\rtempDegC = %d", tempDegC);
+	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#endif
+	
+	return tempDegC;
+}
+
 /* Function to change state */
 void mg_adc_ChangeState(StateADC_t newState)
 {
@@ -302,7 +354,7 @@ void mg_adc_ChangeState(StateADC_t newState)
 }
 
 /* ADC system state machine */
-AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
+AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_t *outputData)
 {
 	AdcControlFlags_t adcControlFlagsLocal;
 	
@@ -321,10 +373,16 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		{
 			if(adcControlFlags.start)													// If a new conversion should start
 			{
-				adcStatusFlags.flagIdle = 0;												// Then set the status flags to busy
+				adcControlFlagsLocal 					= adcControlFlags;		// Copy the control flags locally
+				
+				adcStatusFlags.flagIdle 			= 0;									// Then set the status flags to busy
 				adcStatusFlags.flagConverting = 1;
-				adcStatusFlags.flagComplete = 0;
-				adcControlFlagsLocal = adcControlFlags;							// Copy the control flags locally
+				adcStatusFlags.flagComplete 	= 0;
+				
+				outputData->readingLight 					= 0;							// Clear the output data structure
+				outputData->readingTemp 					= 0;
+				outputData->readingBat 						= 0;
+				
 				mg_adc_ChangeState(ADC_STATE_CONVERTING_BAT);				// Always start by converting battery voltage (need Vref for all other sensors)
 			}
 			break;
@@ -332,6 +390,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 		
 		case ADC_STATE_CONVERTING:
 		{
+			
 			if(adcControlFlagsLocal.getLight)									// If a new light sensor conversion has been requested
 			{
 				mg_adc_ChangeState(ADC_STATE_CONVERTING_LIGHT);			// Go to converting state
@@ -366,10 +425,20 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 			
 			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
-				uint32_t reading_mV  = mg_adc_ConvertMv(reading, vRef);									// Convert reading to mV
-				uint32_t reading_lux = mg_adc_ConvertLight(reading_mV, lightRange);			// Convert to lux
-				adcControlFlagsLocal.getLight = false;																	// Clear light conversion flag
-				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
+				uint32_t reading_mV  = mg_adc_ConvertMv(reading, vRef);											// Convert reading to mV
+				uint32_t reading_lux = mg_adc_ConvertLight(reading_mV, lightRange);					// Convert to lux
+				outputData->readingLight = reading_lux;																			// Copy into data output struct
+				
+								#ifdef DEBUG_ADC
+								char AdcReadingString[50];
+								sprintf(AdcReadingString, "\n\rlight = %d", outputData->readingLight);
+								HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+								#endif
+				
+				
+				
+				adcControlFlagsLocal.getLight = false;																			// Clear light conversion flag
+				mg_adc_ChangeState(ADC_STATE_CONVERTING);																		// And go back to converting state
 			}
 			break;
 		}
@@ -386,6 +455,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 			
 			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
+				outputData->readingTemp = mg_adc_GetTemp(reading);											// Convert to temperature and copy into data output struct
 				adcControlFlagsLocal.getTemp = false;																		// Clear temperature conversion flag
 				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
 			}
@@ -404,7 +474,11 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags)
 			
 			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
-				vRef = mg_adc_GetBatVoltage(&reading);																	// Find battery voltage
+				vRef = mg_adc_GetBatVoltage(&reading);																	// Convert to voltage
+				if(adcControlFlagsLocal.getBat == true)																	// If battery voltage has been requested
+				{
+					outputData->readingBat = vRef;																						// Then copy into data output struct
+				}
 				adcControlFlagsLocal.getBat = false;																		// Clear internal bandgap voltage conversion flag
 				mg_adc_ChangeState(ADC_STATE_CONVERTING);																// And go back to converting state
 			}

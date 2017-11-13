@@ -66,16 +66,21 @@ typedef union {
     uint8_t adcStatusFlags;
 } AdcStatusFlags_t;
 
-//extern AdcStatusFlags_t adcStatusFlags;
+/* ADC readings */
+typedef struct
+		{
+			uint32_t readingLight				:	1;		// Light reading data
+			uint32_t readingTemp				: 1;		// Temperature reading data
+			uint32_t readingBat					: 1;		// Battery voltage reading data
+    }AdcData_t;
   
 /*****************************************************************************/
 // functions
-AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags);
+AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_t *data);
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ErrorCallback(ADC_HandleTypeDef *hadc);
 void HAL_ADC_LevelOutOfWindowCallback(ADC_HandleTypeDef* hadc);
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc);
-void mg_adc_StartReading(void);
   
 #endif /* __MG_ADC_H */
 // close the Doxygen group
