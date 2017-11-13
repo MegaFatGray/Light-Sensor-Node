@@ -13,6 +13,7 @@
 #include <stdbool.h>
  
 // user headers directly related to this component, ensures no dependency
+#include "global_defs.h"
 #include "mg_adc.h"
 #include "stm32l0xx_hal.h"
 #include "string.h"
@@ -43,7 +44,7 @@ typedef enum stateADC {
   
 /*****************************************************************************/
 // constants
-#define DEBUG_ADC
+
 
 #define CONVERSION_AVG_WIDTH			3
 #define VREFINT_CAL_ADDR    			0x1FF80078		// Memory address of the VREFINT calibration value
@@ -129,9 +130,9 @@ void mg_adc_SetLightRange(LightRange_t range)
 		default:
 		{
 			#ifdef DEBUG_ADC
-			char AdcReadingString[50];
-			sprintf(AdcReadingString, "Error: range not valid");
-			HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+			char debugString[50];
+			sprintf(debugString, "Error: range not valid");
+			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 			#endif
 			while(1);
 		}
@@ -162,9 +163,11 @@ ConvStatus_t mg_adc_Convert(uint32_t *reading)
 			adcIntFlags.flagConvComplete = false;						// Reset flag
 			status = CONV_DONE;															// And set the status to done
 			
+			#ifdef DEBUG_ADC
 			char debugString[50];
 			sprintf(debugString, "\n\rConversion = %d", *reading);
 			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+			#endif
 		}
 	}
 	return status;
@@ -211,9 +214,11 @@ ReadStatus_t mg_adc_GetReading(uint32_t *reading)
 				*reading = conversionAvg;																					// Copy the result into the argument pointer
 				status = READ_DONE;																								// And set the status
 				
+				#ifdef DEBUG_ADC
 				char debugString[50];
 				sprintf(debugString, "\n\rAveraged reading = %d", *reading);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
 			}
 		}
 	}
@@ -226,9 +231,11 @@ uint32_t mg_adc_GetBatVoltage(uint32_t *bandgapReading)
 	uint16_t vrefint_cal = *((uint16_t*)VREFINT_CAL_ADDR);															// Read internal reference voltage cal value
 	uint32_t Vbat = (3 * (vrefint_cal*1000 / *bandgapReading*1000)) / 1000;							// Calculate battery voltage
 	
-	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rVbat = %d", Vbat);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#ifdef DEBUG_ADC
+	char debugString[50];
+	sprintf(debugString, "\n\rVbat = %d", Vbat);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	#endif
 	
 	return Vbat;
 }
@@ -238,9 +245,11 @@ uint32_t mg_adc_ConvertMv(uint32_t reading, uint32_t vBat)
 {
 	reading = ((reading * ((vBat*1000) / ADC_RESOLUTION)) / 1000);											// Convert to mV
 	
-	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rmg_adc_ConvertMv = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	#ifdef DEBUG_ADC
+	char debugString[50];
+	sprintf(debugString, "\n\rmg_adc_ConvertMv = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	#endif
 	
 	return reading;
 }
@@ -249,9 +258,9 @@ uint32_t mg_adc_ConvertMv(uint32_t reading, uint32_t vBat)
 uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 {
 	#ifdef DEBUG_ADC
-	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight mV = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	char debugString[50];
+	sprintf(debugString, "\n\rmg_adc_ConvertLight mV = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	// Convert mV to uV
@@ -275,22 +284,22 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 	else
 	{
 		#ifdef DEBUG_ADC
-		char AdcReadingString[50];
-		sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Error: range not valid");
-		HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+		char debugString[50];
+		sprintf(debugString, "\n\rmg_adc_ConvertLight Error: range not valid");
+		HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 		#endif
 		while(1);
 	}
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight pA = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	sprintf(debugString, "\n\rmg_adc_ConvertLight pA = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	// Convert to lux
 	reading = reading / LUX_CONV_FACTOR_PA;  // 180
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rmg_adc_ConvertLight Lux = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	sprintf(debugString, "\n\rmg_adc_ConvertLight Lux = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	return reading;
@@ -304,9 +313,9 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 uint32_t mg_adc_GetTemp(uint32_t reading)
 {
 	#ifdef DEBUG_ADC
-	char AdcReadingString[50];
-	sprintf(AdcReadingString, "\n\rReading = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	char debugString[50];
+	sprintf(debugString, "\n\rReading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	// Scale reading to cal values (Vdda=3V)
@@ -314,8 +323,8 @@ uint32_t mg_adc_GetTemp(uint32_t reading)
 	reading /= 1000;
 	
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rScaled Reading = %d", reading);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	sprintf(debugString, "\n\rScaled Reading = %d", reading);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	// Read internal temperature cal values
@@ -323,24 +332,24 @@ uint32_t mg_adc_GetTemp(uint32_t reading)
 	tSenseCal1 = *((uint16_t*)T_SENSE_CAL1_ADDR);
 	
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rtSenseCal1 = %d", tSenseCal1);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	sprintf(debugString, "\n\rtSenseCal1 = %d", tSenseCal1);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	uint16_t tSenseCal2;
 	tSenseCal2 = *((uint16_t*)T_SENSE_CAL2_ADDR);
 	
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rtSenseCal2 = %d", tSenseCal2);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	sprintf(debugString, "\n\rtSenseCal2 = %d", tSenseCal2);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	// Calculate temperature
 	uint32_t tempDegC = ( ( ( (130-30)*1000 ) / (tSenseCal2 - tSenseCal1) ) * (reading - tSenseCal1) / 1000 ) + 30;
 	
 	#ifdef DEBUG_ADC
-	sprintf(AdcReadingString, "\n\rtempDegC = %d", tempDegC);
-	HAL_UART_Transmit(&huart1, (uint8_t*)AdcReadingString, strlen(AdcReadingString), 500);
+	sprintf(debugString, "\n\rtempDegC = %d", tempDegC);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
 	return tempDegC;
