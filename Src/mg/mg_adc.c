@@ -551,11 +551,6 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	#ifdef DEBUG_ADC
-				char debugString[50];
-				sprintf(debugString, "\n\rhere");
-				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-				#endif
 	adcIntFlags.flagConvComplete = true;
 }
 
