@@ -393,12 +393,23 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 				outputData->readingBat 						= 0;
 				
 				mg_adc_ChangeState(ADC_STATE_CONVERTING_BAT);				// Always start by converting battery voltage (need Vref for all other sensors)
+				
+				#ifdef DEBUG_ADC
+				char debugString[50];
+				sprintf(debugString, "\n\rADC_STATE_IDLE");
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
 			}
 			break;
 		}
 		
 		case ADC_STATE_CONVERTING:
 		{
+			#ifdef DEBUG_ADC
+			char debugString[50];
+			sprintf(debugString, "\n\rADC_STATE_CONVERTING");
+			HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+			#endif
 			
 			if(adcControlFlagsLocal.getLight)									// If a new light sensor conversion has been requested
 			{
@@ -428,6 +439,12 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 				HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);			// Turn on power to ambient light sensor
 				ADC1->CHSELR = ADC_CHSELR_CHSEL10;																			// Change ADC channel to light sensor pin
 				firstPass = 0;																													// Clear firstPass flag
+				
+				#ifdef DEBUG_ADC
+				char debugString[50];
+				sprintf(debugString, "\n\rADC_STATE_CONVERTING_LIGHT");
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
 			}
 			
 			ReadStatus_t readStatus = mg_adc_GetReading(&reading);								// Kick the reading state machine
@@ -449,6 +466,12 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 			{
 				ADC1->CHSELR = ADC_CHSELR_CHSEL18;																			// Change ADC channel to internal temperature sensor
 				firstPass = 0;																													// Clear firstPass flag
+				
+				#ifdef DEBUG_ADC
+				char debugString[50];
+				sprintf(debugString, "\n\rADC_STATE_CONVERTING_TEMP");
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
 			}
 			
 			ReadStatus_t readStatus = mg_adc_GetReading(&reading);								// Kick the reading state machine
@@ -468,6 +491,12 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 			{
 				ADC1->CHSELR = ADC_CHSELR_CHSEL17;																			// Change ADC channel to internal bandgap reference voltage
 				firstPass = 0;																													// Clear firstPass flag
+				
+				#ifdef DEBUG_ADC
+				char debugString[50];
+				sprintf(debugString, "\n\rADC_STATE_CONVERTING_BAT");
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
 			}
 			
 			ReadStatus_t readStatus = mg_adc_GetReading(&reading);								// Kick the reading state machine
@@ -487,6 +516,17 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 		
 		case ADC_STATE_CONVERTED:
 		{
+			if(firstPass)
+			{
+				firstPass = 0;																													// Clear firstPass flag
+				
+				#ifdef DEBUG_ADC
+				char debugString[50];
+				sprintf(debugString, "\n\rADC_STATE_CONVERTED");
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
+			}
+			
 			if(adcControlFlags.reset)																							// If a reset has been requested
 			{
 				mg_adc_ChangeState(ADC_STATE_IDLE);																			// Go to idle state
@@ -511,6 +551,11 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+	#ifdef DEBUG_ADC
+				char debugString[50];
+				sprintf(debugString, "\n\rhere");
+				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+				#endif
 	adcIntFlags.flagConvComplete = true;
 }
 

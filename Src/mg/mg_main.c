@@ -16,6 +16,7 @@
 #include "mg_main.h"
 #include "mg_state_machine.h"
 #include "mg_rtc.h"
+#include "string.h"
    
 // user headers from other components
   
@@ -42,22 +43,29 @@
 
 /*****************************************************************************/
 // variable declarations
+extern UART_HandleTypeDef 	huart1;
   
 /*****************************************************************************/
 // functions
 
 void mg_main_Main(void)
 {
-	RTC_DateTypeDef rtcDate;
-	RTC_TimeTypeDef rtcTime;
+	#ifdef DEBUG_TOPSM
+	char debugString[50];
+	sprintf(debugString, "\n\rLight Sensor Node");
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
+	#endif
+	
+	//RTC_DateTypeDef rtcDate;
+	//RTC_TimeTypeDef rtcTime;
 	RTC_Set();
 	
 	while(1)
 	{
-		//mg_state_machine();
-		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-		RTC_Get(&rtcDate, &rtcTime);
-		HAL_Delay(1000);
+		mg_state_machine();
+		//HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+		//RTC_Get(&rtcDate, &rtcTime);
+		//HAL_Delay(1000);
 		
 	}
 }
