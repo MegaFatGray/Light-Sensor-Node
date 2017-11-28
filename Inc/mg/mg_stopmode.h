@@ -41,6 +41,7 @@
   
 /*****************************************************************************/
 // functions
+void mg_stopmode_Stop(void);
   
 #endif /* __MG_STOPMODE_H */
 // close the Doxygen group

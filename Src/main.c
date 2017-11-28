@@ -41,8 +41,8 @@
 
 /* USER CODE BEGIN Includes */
 #include "string.h"
-
 #include "global_defs.h"
+#include "mg_stopmode.h"
 #include "mg_rtc.h"
 
 /* USER CODE END Includes */
@@ -112,8 +112,8 @@ int main(void)
 	
 	RTC_Set();
 	
-	RTC_DateTypeDef rtcDate;
-	RTC_TimeTypeDef rtcTime;
+	//RTC_DateTypeDef rtcDate;
+	//RTC_TimeTypeDef rtcTime;
 	
   /* USER CODE END 2 */
 
@@ -121,12 +121,14 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+		mg_stopmode_Stop();
+		
 		//char HereString[20] 		= "\n\rhere";
 		//HAL_UART_Transmit(&huart1, (uint8_t*)HereString, strlen(HereString), 500);
 		
-		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-		RTC_Get(&rtcDate, &rtcTime);
-		HAL_Delay(1000);
+		//HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+		//RTC_Get(&rtcDate, &rtcTime);
+		//HAL_Delay(1000);
 		
   /* USER CODE END WHILE */
 
