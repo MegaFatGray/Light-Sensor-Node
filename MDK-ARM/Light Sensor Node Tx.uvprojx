@@ -540,6 +540,11 @@
               <FileType>1</FileType>
               <FilePath>..\Src\mg\mg_rtc.c</FilePath>
             </File>
+            <File>
+              <FileName>mg_stopmode.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\mg\mg_stopmode.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
