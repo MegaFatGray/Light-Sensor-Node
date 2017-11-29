@@ -110,11 +110,11 @@ void mg_state_machine(void)
 			{
 				#ifdef DEBUG_TOPSM
 				char debugString[50];
-				sprintf(debugString, "\n\rLight = %d", adcData.readingLight);
+				sprintf(debugString, "\n\rLight = %d lux", adcData.readingLight);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-				sprintf(debugString, "\n\rTemp = %d", adcData.readingTemp);
+				sprintf(debugString, "\n\rTemp  = %d degC", adcData.readingTemp);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
-				sprintf(debugString, "\n\rBat = %d", adcData.readingBat);
+				sprintf(debugString, "\n\rBat   = %d mV", adcData.readingBat);
 				HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 				#endif
 				
