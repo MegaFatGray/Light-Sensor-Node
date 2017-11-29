@@ -14,9 +14,11 @@
 #include <stdbool.h>
  
 // user headers directly related to this component, ensures no dependency
+#include "global_defs.h"
 #include "mg_state_machine.h"
 #include "mg_adc.h"
-#include "global_defs.h"
+#include "mg_stopmode.h"
+
 
 // user headers from other components
   
@@ -27,7 +29,7 @@
 // typedefs
 typedef enum stateTop {
 	TOP_STATE_AWAKE,							// Awake - checking system status and acting accordingly
-	TOP_STATE_ASLEEP,							// Sleeping
+	TOP_STATE_ASLEEP,							// Sleeping in stop mode
 	TOP_STATE_ERROR,							// Error state
 	
 	TOP_STATE_NUM_STATES 					// The number of states
@@ -38,7 +40,6 @@ typedef enum stateTop {
   
 /*****************************************************************************/
 // constants
-#define SLEEP_PERIOD_MS 1000
 
 /*****************************************************************************/
 // macros
@@ -92,8 +93,8 @@ void mg_state_machine(void)
 			if(firstPass)																																// If this is the first pass
 			{
 				adcControlFlags.getLight 	= true;																							// Set the light conversion request flag
-				adcControlFlags.getTemp 	= false;																						// Clear the temperature conversion request flag
-				adcControlFlags.getBat 		= false;																						// Clear the battery conversion request flag
+				adcControlFlags.getTemp 	= true;																							// Clear the temperature conversion request flag
+				adcControlFlags.getBat 		= true;																							// Clear the battery conversion request flag
 				adcControlFlags.start 		= true;																							// Set the start conversion flag
 				adcControlFlags.reset 		= false;																						// Clear the reset flag
 				firstPass = false;																														// Reset first pass flag
@@ -126,7 +127,7 @@ void mg_state_machine(void)
 				adcControlFlags.reset 		= true;																							// Set the reset flag
 				
 				adcStatusFlags = mg_adc_StateMachine(adcControlFlags, &adcData);							// Reset ADC state machine
-				mg_state_machine_ChangeState(TOP_STATE_ASLEEP);																// And go to sleep
+				mg_state_machine_ChangeState(TOP_STATE_ASLEEP);																// And go to sleep state
 			}
 			
 			break;
@@ -145,11 +146,12 @@ void mg_state_machine(void)
 				#endif
 			}
 			
-			if(rtcInterrupt)																														// If its time to wake up
-			{
-				rtcInterrupt = 0;																															// Clear flag
-				mg_state_machine_ChangeState(TOP_STATE_AWAKE);																// And wake up
-			}
+			mg_stopmode_Stop();																													// Go to sleep until next wake cycle
+			
+			/* SLEEPING */
+			
+			mg_state_machine_ChangeState(TOP_STATE_AWAKE);															// When woken up go to awake state
+			
 			
 			break;
 		}

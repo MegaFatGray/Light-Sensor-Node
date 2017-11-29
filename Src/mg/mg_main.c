@@ -56,17 +56,11 @@ void mg_main_Main(void)
 	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 	
-	//RTC_DateTypeDef rtcDate;
-	//RTC_TimeTypeDef rtcTime;
 	RTC_Set();
 	
 	while(1)
 	{
 		mg_state_machine();
-		//HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-		//RTC_Get(&rtcDate, &rtcTime);
-		//HAL_Delay(1000);
-		
 	}
 }
 

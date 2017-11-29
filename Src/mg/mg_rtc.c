@@ -2,7 +2,6 @@
 #include "stm32l0xx_hal.h"
 #include "string.h"
 #include "global_defs.h"
-#include "mg_state_machine.h"
 
 extern RTC_HandleTypeDef hrtc;
 extern UART_HandleTypeDef huart1;
@@ -124,8 +123,6 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 		/* Re-enable write protection for RTC registers */
 		RTC->WPR = 0xFF;
 		
-		/* Set the RTC interrupt flag */
-		rtcInterrupt = 1;
 	}
 }
 
