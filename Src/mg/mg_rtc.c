@@ -2,6 +2,7 @@
 #include "stm32l0xx_hal.h"
 #include "string.h"
 #include "global_defs.h"
+#include "mg_state_machine.h"
 
 extern RTC_HandleTypeDef hrtc;
 extern UART_HandleTypeDef huart1;
@@ -21,10 +22,10 @@ void RTC_GetCompileDate(RTC_DateTypeDef *rtcDate)
 	rtcDate->Month = month;
 	rtcDate->Date  = day;
 	
-	#ifdef DEBUG_RTC_OUTPUTS
-	char myDateString[50];
-	sprintf(myDateString, "\n\rRTC date set to %d %d %d", day, month, year);
-	HAL_UART_Transmit(&huart1, (uint8_t*)myDateString, strlen(myDateString), 500);
+	#ifdef DEBUG_RTC
+	char debugString[50];
+	sprintf(debugString, "\n\rRTC date set to %d %d %d", day, month, year);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 }
 
@@ -42,10 +43,10 @@ void RTC_GetCompileTime(RTC_TimeTypeDef *rtcTime)
 	rtcTime->Minutes = minute;
 	rtcTime->Seconds = second;
 	
-	#ifdef DEBUG_RTC_OUTPUTS
-	char myTimeString[50];
-	sprintf(myTimeString, "\n\rRTC time set to %d %d %d", hour, minute, second);
-	HAL_UART_Transmit(&huart1, (uint8_t*)myTimeString, strlen(myTimeString), 500);
+	#ifdef DEBUG_RTC
+	char debugString[50];
+	sprintf(debugString, "\n\rRTC time set to %d %d %d", hour, minute, second);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 }
 
@@ -66,10 +67,10 @@ void RTC_Get(RTC_DateTypeDef *date, RTC_TimeTypeDef *time)
 	HAL_RTC_GetDate(&hrtc, date, RTC_FORMAT_BIN);
 	HAL_RTC_GetTime(&hrtc, time, RTC_FORMAT_BIN);
 	
-	#ifdef DEBUG_RTC_OUTPUTS
-	char rtcString[50];
-	sprintf(rtcString, "\n\r%d/%d/%d %d:%d:%d", date->Date, date->Month, date->Year, time->Hours, time->Minutes, time->Seconds);
-	HAL_UART_Transmit(&huart1, (uint8_t*)rtcString, strlen(rtcString), 500);
+	#ifdef DEBUG_RTC
+	char debugString[50];
+	sprintf(debugString, "\n\r%d/%d/%d %d:%d:%d", date->Date, date->Month, date->Year, time->Hours, time->Minutes, time->Seconds);
+	HAL_UART_Transmit(&huart1, (uint8_t*)debugString, strlen(debugString), 500);
 	#endif
 }
 
@@ -123,11 +124,8 @@ void HAL_RTC_AlarmAEventCallback(RTC_HandleTypeDef *hrtc)
 		/* Re-enable write protection for RTC registers */
 		RTC->WPR = 0xFF;
 		
-		#ifdef DEBUG_RTC_OUTPUTS
-		char myDateString[50];
-		sprintf(myDateString, "\n\rAlarm A interrupt fired");
-		HAL_UART_Transmit(&huart1, (uint8_t*)myDateString, strlen(myDateString), 500);
-		#endif
+		/* Set the RTC interrupt flag */
+		rtcInterrupt = 1;
 	}
 }
 

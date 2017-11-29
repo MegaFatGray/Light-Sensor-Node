@@ -1,1 +1,1 @@
-# Light-Sensor-Node
+# Light-Sensor-Node-Firmware
