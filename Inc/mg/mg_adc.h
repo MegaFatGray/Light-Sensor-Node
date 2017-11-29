@@ -69,9 +69,9 @@ typedef union {
 /* ADC readings */
 typedef struct
 		{
-			uint32_t readingLight				:	1;		// Light reading data
-			uint32_t readingTemp				: 1;		// Temperature reading data
-			uint32_t readingBat					: 1;		// Battery voltage reading data
+			uint32_t readingLight;							// Light reading data
+			uint32_t readingTemp;								// Temperature reading data
+			uint32_t readingBat;								// Battery voltage reading data
     }AdcData_t;
   
 /*****************************************************************************/

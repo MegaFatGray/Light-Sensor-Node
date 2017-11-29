@@ -61,8 +61,6 @@ AdcData_t adcData =
 		.readingTemp		= 0,
 		.readingBat			= 0
 	};
-	
-uint8_t rtcInterrupt;
   
 /*****************************************************************************/
 // functions
