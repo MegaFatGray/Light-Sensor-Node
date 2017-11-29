@@ -437,6 +437,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 				lightRange = LIGHT_RANGE_LOW;																						// Set range low
 				mg_adc_SetLightRange(lightRange);
 				HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_SET);			// Turn on power to ambient light sensor
+				HAL_Delay(1);																														// Delay to allow sensor amplifier to settle (actually only needs ~50us)
 				ADC1->CHSELR = ADC_CHSELR_CHSEL10;																			// Change ADC channel to light sensor pin
 				firstPass = 0;																													// Clear firstPass flag
 				
@@ -451,6 +452,7 @@ AdcStatusFlags_t mg_adc_StateMachine(AdcControlFlags_t adcControlFlags, AdcData_
 			
 			if(readStatus == READ_DONE)																						// If the reading is complete
 			{
+				HAL_GPIO_WritePin(SENSE_EN_GPIO_Port, SENSE_EN_Pin, GPIO_PIN_RESET);				// Turn off power to ambient light sensor
 				uint32_t reading_mV  = mg_adc_ConvertMv(reading, vRef);											// Convert reading to mV
 				uint32_t reading_lux = mg_adc_ConvertLight(reading_mV, lightRange);					// Convert to lux
 				outputData->readingLight = reading_lux;																			// Copy into data output struct
