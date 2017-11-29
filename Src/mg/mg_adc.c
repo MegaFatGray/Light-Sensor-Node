@@ -308,8 +308,8 @@ uint32_t mg_adc_ConvertLight(uint32_t reading, LightRange_t range)
 /* Converts raw ADC reading to temperature 														*/
 /* 	- ADC sampling time must be >10us																	*/
 /*	- CubeMX configured for synchronous ADC clock with no prescalar		*/
-/* 	- System clock 16MHz																							*/
-/* 	- Therefore minimum of 160 clock cycles 													*/
+/* 	- System clock 4MHz																							  */
+/* 	- Therefore minimum of 40 clock cycles (set to 79.5)							*/
 uint32_t mg_adc_GetTemp(uint32_t reading)
 {
 	#ifdef DEBUG_ADC
