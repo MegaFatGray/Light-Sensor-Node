@@ -336,7 +336,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32L053xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32L0xx_HAL_Driver/Inc;../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L0xx/Include;../Drivers/CMSIS/Include;..\Inc\S2LP;..\Inc\mg</IncludePath>
+              <IncludePath>../Inc;../Drivers/STM32L0xx_HAL_Driver/Inc;../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L0xx/Include;../Drivers/CMSIS/Include;..\Inc\mg;..\Inc\S2LP</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -397,16 +397,6 @@
               <FileName>stm32l0xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Src/stm32l0xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>mg_S2lpMcuInterface.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Src\mg\mg_S2lpMcuInterface.c</FilePath>
-            </File>
-            <File>
-              <FileName>mg_S2lpTopLevel.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Src\mg\mg_S2lpTopLevel.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -546,7 +536,22 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>API/S2LP</GroupName>
+          <GroupName>Application/mg</GroupName>
+          <Files>
+            <File>
+              <FileName>mg_S2lpMcuInterface.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\mg\mg_S2lpMcuInterface.c</FilePath>
+            </File>
+            <File>
+              <FileName>mg_S2lpTopLevel.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Src\mg\mg_S2lpTopLevel.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Drivers/S2LP</GroupName>
           <Files>
             <File>
               <FileName>S2LP_Commands.c</FileName>

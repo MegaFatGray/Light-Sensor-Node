@@ -3,7 +3,7 @@
  * Auto generated Run-Time-Environment Component Configuration File
  *      *** Do not modify ! ***
  *
- * Project: 'Light Sensor Node Tx' 
+ * Project: 'Light Sensor Node' 
  * Target:  'Light Sensor Node' 
  */
 
