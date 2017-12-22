@@ -164,6 +164,10 @@ void TopLevel()
 		
 		/* pause between two transmissions */
 		HAL_Delay(500);
+		
+		
+		
+		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 	}		
 }
 
