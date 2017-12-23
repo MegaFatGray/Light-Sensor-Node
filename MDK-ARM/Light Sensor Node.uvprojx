@@ -336,7 +336,7 @@
               <MiscControls>--C99</MiscControls>
               <Define>USE_HAL_DRIVER,STM32L053xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;../Drivers/STM32L0xx_HAL_Driver/Inc;../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32L0xx/Include;../Drivers/CMSIS/Include;..\Inc\mg;..\Inc\S2LP</IncludePath>
+              <IncludePath>../Inc;    ../Drivers/STM32L0xx_HAL_Driver/Inc;    ../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;    ../Drivers/CMSIS/Device/ST/STM32L0xx/Include;    ../Drivers/CMSIS/Include;    ..\Inc\mg;    ..\Inc\S2LP</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -377,9 +377,6 @@
         </TargetArmAds>
       </TargetOption>
       <Groups>
-        <Group>
-          <GroupName>::CMSIS</GroupName>
-        </Group>
         <Group>
           <GroupName>Application/User</GroupName>
           <Files>
@@ -619,6 +616,9 @@
               <FilePath>..\Src\S2LP\S2LP_Types.c</FilePath>
             </File>
           </Files>
+        </Group>
+        <Group>
+          <GroupName>::CMSIS</GroupName>
         </Group>
       </Groups>
     </Target>

@@ -61,6 +61,7 @@
   
 /*****************************************************************************/
 // static variable declarations
+extern UART_HandleTypeDef huart1;
 
 /**
 * @brief Radio structure fitting
@@ -93,7 +94,7 @@ PktBasicInit xBasicInit={
 */
 SGpioInit xGpioIRQ={
   S2LP_GPIO_3,
-  S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
+  S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP,
   S2LP_GPIO_DIG_OUT_IRQ
 };
 
@@ -120,6 +121,8 @@ uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 ******************************************************************************/
 void TopLevel()
 {
+	HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+	
 	/* S2LP ON */
   S2LPEnterShutdown();
   S2LPExitShutdown();
@@ -151,16 +154,41 @@ void TopLevel()
 	/* infinite loop */
   while (1)
 	{
+		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_0;
+		xGpioIRQ.xS2LPGpioMode = S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP;
+		xGpioIRQ.xS2LPGpioIO   = S2LP_GPIO_DIG_OUT_VDD;
+		S2LPGpioInit(&xGpioIRQ);
+		
+		uint8_t readReg;
+		S2LPSpiReadRegisters(0x03, 1, &readReg);
+		uint8_t mystring[50];
+		sprintf((char*)mystring, "\r\nreg=%d", readReg);
+		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+		
+		HAL_Delay(500);
+		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+		
+		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_0;
+		xGpioIRQ.xS2LPGpioMode = S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP;
+		xGpioIRQ.xS2LPGpioIO   = S2LP_GPIO_DIG_OUT_GND;
+		S2LPGpioInit(&xGpioIRQ);
+		
+		S2LPSpiReadRegisters(0x03, 1, &readReg);
+		sprintf((char*)mystring, "\r\nreg=%d", readReg);
+		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+		
+		
+		
 		/* fit the TX FIFO */
-    S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
-    S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
+    //S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
+    //S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
 		
 		/* send the TX command */
-    S2LPCmdStrobeTx();
+    //S2LPCmdStrobeTx();
 		
 		/* wait for TX done */
-    while(!xTxDoneFlag);
-    xTxDoneFlag = RESET;
+    //while(!xTxDoneFlag);
+    //xTxDoneFlag = RESET;
 		
 		/* pause between two transmissions */
 		HAL_Delay(500);
@@ -169,6 +197,31 @@ void TopLevel()
 		
 		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 	}		
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	// add check for INT_S2LP_GPIO3
+	xTxDoneFlag = SET;
+	
+	// from example project...
+	/*
+	if(GPIO_Pin==M2S_GPIO_PIN_IRQ)
+   { 
+    // Get the IRQ status
+    S2LPGpioIrqGetStatus(&xIrqStatus);
+    
+    // Check the SPIRIT TX_DATA_SENT IRQ flag
+    if(xIrqStatus.IRQ_TX_DATA_SENT)
+    {
+      // set the tx_done_flag to manage the event in the main()
+      xTxDoneFlag = SET;
+      
+      // toggle LED1
+      SdkEvalLedToggle(LED1);
+    }
+   }
+	*/
 }
 
 // close the Doxygen group

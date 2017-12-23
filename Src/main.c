@@ -106,11 +106,10 @@ int main(void)
   MX_RTC_Init();
 
   /* USER CODE BEGIN 2 */
-	uint8_t mystring[] = "TEST";
+	uint8_t mystring[] = "\r\nTEST";
 	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
-	//HAL_Delay(100);
 	
-	//TopLevel();
+	TopLevel();
 	
   /* USER CODE END 2 */
 
@@ -361,10 +360,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, SENSE_EN_Pin|RANGE_Pin|nCS_S2LP_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, SENSE_EN_Pin|RANGE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, LED_GRN_Pin|nS2LP_EN_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(nCS_S2LP_GPIO_Port, nCS_S2LP_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pins : SENSE_EN_Pin RANGE_Pin nCS_S2LP_Pin */
   GPIO_InitStruct.Pin = SENSE_EN_Pin|RANGE_Pin|nCS_S2LP_Pin;
@@ -394,8 +396,8 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : INT_S2LP_GPIO3_Pin */
   GPIO_InitStruct.Pin = INT_S2LP_GPIO3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(INT_S2LP_GPIO3_GPIO_Port, &GPIO_InitStruct);
 
 }

@@ -151,8 +151,11 @@ StatusBytes S2LPSpiWriteRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint8_t
 	/* Puts the SPI chip select low to start the transaction */
   S2LP_CS_LOW();
 	
-	HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
-	WAIT_FOR_SPI_TC();
+	//HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, cNbBytes, 100);
+	
+	// line below included in example project but not using SPI DMA so not included
+	//WAIT_FOR_SPI_TC();
 	
 	/* Puts the SPI chip select high to end the transaction */
   S2LP_CS_HIGH();
@@ -182,8 +185,11 @@ StatusBytes S2LPSpiReadRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint8_t 
   SPI_ENTER_CRITICAL();
   S2LP_CS_LOW();
   
-  HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
-  WAIT_FOR_SPI_TC();
+  //HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, 2+cNbBytes, 100);
+	
+	// line below included in example project but not using SPI DMA so not included
+  //WAIT_FOR_SPI_TC();
   
   S2LP_CS_HIGH();
   SPI_EXIT_CRITICAL();
@@ -215,8 +221,11 @@ StatusBytes S2LPSpiCommandStrobes(uint8_t cCommandCode)
   SPI_ENTER_CRITICAL();
   S2LP_CS_LOW();
   
-  HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2);
-  WAIT_FOR_SPI_TC();
+  //HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, 2, 100);
+	
+	// line below included in example project but not using SPI DMA so not included
+  //WAIT_FOR_SPI_TC();
   
   S2LP_CS_HIGH();
   SPI_EXIT_CRITICAL();
@@ -248,8 +257,11 @@ StatusBytes S2LPSpiWriteFifo(uint8_t cNbBytes, uint8_t *pcBuffer)
   SPI_ENTER_CRITICAL();
   S2LP_CS_LOW();
   
-  HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
-  WAIT_FOR_SPI_TC();
+  //HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, 2+cNbBytes, 100);
+	
+	// line below included in example project but not using SPI DMA so not included
+  //WAIT_FOR_SPI_TC();
   
   S2LP_CS_HIGH();
   SPI_EXIT_CRITICAL();
@@ -276,8 +288,11 @@ StatusBytes S2LPSpiReadFifo(uint8_t cNbBytes, uint8_t *pcBuffer)
   SPI_ENTER_CRITICAL();
   S2LP_CS_LOW();
   
-  HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
-  WAIT_FOR_SPI_TC();
+  //HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, 2+cNbBytes, 100);
+	
+	// line below included in example project but not using SPI DMA so not included
+  //WAIT_FOR_SPI_TC();
   
   S2LP_CS_HIGH();
   SPI_EXIT_CRITICAL();
