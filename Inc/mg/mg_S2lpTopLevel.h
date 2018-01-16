@@ -34,6 +34,7 @@
   
 /*****************************************************************************/
 // function declarations
+void tempTopLevel(void);
 void TopLevel(void);
 void S2LPEnterShutdown(void);
 void S2LPExitShutdown(void);

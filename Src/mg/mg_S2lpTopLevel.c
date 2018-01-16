@@ -15,6 +15,7 @@
 #include "mg_S2lpTopLevel.h"
 #include "stm32l0xx_hal.h"
 #include "S2LP_Config.h"
+#include "main.h"
    
 // user headers from other components
   
@@ -119,6 +120,34 @@ uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 *   \return     <return code description>
 *   \retval     <optional. explain individual return codes>
 ******************************************************************************/
+void tempTopLevel()
+{
+	static uint8_t tx_buff_write[] = {0x00, 0x03, 0x03};
+	//static uint8_t tx_buff_read[]  = {0x80, 0x03, 0x03};
+	static uint8_t rx_buff_write[128];
+	static uint8_t rx_buff_read[128];
+	extern SPI_HandleTypeDef hspi1;
+	
+	/* S2LP ON */
+  S2LPEnterShutdown();
+	HAL_Delay(10);
+  S2LPExitShutdown();
+	HAL_Delay(10);
+	
+	while(1)
+	{
+		// write register
+		//HAL_SPI_TransmitReceive(&hspi1, tx_buff_write, rx_buff_write, 3, 100);
+		HAL_SPI_Transmit(&hspi1, tx_buff_write, 3, 100);
+		HAL_Delay(10);
+		// read register
+		//HAL_SPI_TransmitReceive(&hspi1, tx_buff_read, rx_buff, 3, 100);
+		S2LPSpiReadRegisters(0x03, 1, rx_buff_read);
+		HAL_Delay(10);
+	}
+	
+}
+	
 void TopLevel()
 {
 	HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);

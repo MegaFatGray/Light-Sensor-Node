@@ -109,7 +109,8 @@ int main(void)
 	uint8_t mystring[] = "\r\nTEST";
 	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 	
-	TopLevel();
+	//TopLevel();
+	tempTopLevel();
 	
   /* USER CODE END 2 */
 
