@@ -154,7 +154,7 @@ void TopLevel()
 	/* infinite loop */
   while (1)
 	{
-		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_0;
+		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_3;
 		xGpioIRQ.xS2LPGpioMode = S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP;
 		xGpioIRQ.xS2LPGpioIO   = S2LP_GPIO_DIG_OUT_VDD;
 		S2LPGpioInit(&xGpioIRQ);
@@ -168,7 +168,7 @@ void TopLevel()
 		HAL_Delay(500);
 		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 		
-		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_0;
+		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_3;
 		xGpioIRQ.xS2LPGpioMode = S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP;
 		xGpioIRQ.xS2LPGpioIO   = S2LP_GPIO_DIG_OUT_GND;
 		S2LPGpioInit(&xGpioIRQ);
