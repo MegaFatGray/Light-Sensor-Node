@@ -136,14 +136,23 @@ void tempTopLevel()
 	
 	while(1)
 	{
+		//S2LPGpioInit(&xGpioIRQ);
 		// write register
-		//HAL_SPI_TransmitReceive(&hspi1, tx_buff_write, rx_buff_write, 3, 100);
-		HAL_SPI_Transmit(&hspi1, tx_buff_write, 3, 100);
+		HAL_GPIO_WritePin(nCS_S2LP_GPIO_Port, nCS_S2LP_Pin, GPIO_PIN_RESET);
+		//HAL_SPI_Transmit(&hspi1, tx_buff_write, 3, 100);													// GOOD
+		//HAL_SPI_TransmitReceive(&hspi1, tx_buff_write, rx_buff_write, 3, 100);		// GOOD
+		uint8_t tmp = 0x03;
+		S2LPSpiWriteRegisters(0x03, 1, &tmp);																				// TESTING
+		HAL_GPIO_WritePin(nCS_S2LP_GPIO_Port, nCS_S2LP_Pin, GPIO_PIN_SET);
 		HAL_Delay(10);
+		
+		//S2LPSpiWriteRegisters(pxGpioInitStruct->xS2LPGpioPin, 1, &tmp);
+
+		//HAL_Delay(10);
 		// read register
 		//HAL_SPI_TransmitReceive(&hspi1, tx_buff_read, rx_buff, 3, 100);
-		S2LPSpiReadRegisters(0x03, 1, rx_buff_read);
-		HAL_Delay(10);
+		//S2LPSpiReadRegisters(0x03, 1, rx_buff_read);
+		//HAL_Delay(10);
 	}
 	
 }

@@ -751,6 +751,16 @@ HAL_StatusTypeDef HAL_SPI_Receive(SPI_HandleTypeDef *hspi, uint8_t *pData, uint1
   */
 HAL_StatusTypeDef HAL_SPI_TransmitReceive(SPI_HandleTypeDef *hspi, uint8_t *pTxData, uint8_t *pRxData, uint16_t Size, uint32_t Timeout)
 {
+	extern UART_HandleTypeDef huart1;
+	
+	uint8_t debugString[200];
+	sprintf((char*)debugString, "\r\n*pTxData: %d \r\n*pRxData: %d \r\nSize: %d \r\nTimeout: %d", *pTxData, *pRxData, Size, Timeout);
+	HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
+	
+	sprintf((char*)debugString, "\r\npTxData[0]: %d \r\npTxData[1]: %d \r\npTxData[2]: %d", pTxData[0], pTxData[1], pTxData[2]);
+	HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
+	
+	
   __IO uint16_t tmpreg = 0U;
 
   if((hspi->State == HAL_SPI_STATE_READY) || (hspi->State == HAL_SPI_STATE_BUSY_RX))

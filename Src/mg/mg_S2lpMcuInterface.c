@@ -72,6 +72,7 @@ static uint8_t rx_buff[128];
 /*****************************************************************************/
 // variable declarations
 extern SPI_HandleTypeDef hspi1;
+extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // functions
@@ -136,6 +137,10 @@ StatusBytes S2LPSpiWriteRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint8_t
 {
 	//HAL_SPI_Transmit(SPI_HandleTypeDef *hspi, uint8_t *pData, uint16_t Size, uint32_t Timeout)
 	
+	uint8_t debugString[200];
+	sprintf((char*)debugString, "\r\ncRegAddress: %d \r\ncNbBytes: %d \r\n*pcBuffer: %d", cRegAddress, cNbBytes, *pcBuffer);
+	HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
+	
 	tx_buff[0]=WRITE_HEADER;
   tx_buff[1]=cRegAddress;
 	
@@ -146,13 +151,16 @@ StatusBytes S2LPSpiWriteRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint8_t
     tx_buff[i+2]=pcBuffer[i];
   }
 	
+	sprintf((char*)debugString, "\r\ntx_buff[0]: %d \r\ntx_buff[1]: %d \r\ntx_buff[2]: %d", tx_buff[0], tx_buff[1], tx_buff[2]);
+	HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
+	
 	SPI_ENTER_CRITICAL();
 	
 	/* Puts the SPI chip select low to start the transaction */
   S2LP_CS_LOW();
 	
 	//HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
-	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, cNbBytes, 100);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, 2+cNbBytes, 100);
 	
 	// line below included in example project but not using SPI DMA so not included
 	//WAIT_FOR_SPI_TC();
