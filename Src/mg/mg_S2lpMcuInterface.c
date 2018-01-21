@@ -152,7 +152,7 @@ StatusBytes S2LPSpiWriteRegisters(uint8_t cRegAddress, uint8_t cNbBytes, uint8_t
   S2LP_CS_LOW();
 	
 	//HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buff, rx_buff, 2+cNbBytes);
-	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, cNbBytes, 100);
+	HAL_SPI_TransmitReceive(&hspi1, tx_buff, rx_buff, 2+cNbBytes, 100);
 	
 	// line below included in example project but not using SPI DMA so not included
 	//WAIT_FOR_SPI_TC();
