@@ -157,11 +157,11 @@ void TopLevel()
 	/* infinite loop */
   while (1)
 	{
-		// read GPIO3_CONF
-		uint8_t mystring[50];
-		uint8_t readReg;
-		S2LPSpiReadRegisters(0x03, 1, &readReg);
-		sprintf((char*)mystring, "\r\nGPIO3_CONF=%d", readReg);
+		// read IRQ_MASK3
+		uint8_t mystring[100];
+		uint8_t readReg[4];
+		S2LPSpiReadRegisters(0x50, 4, readReg);
+		sprintf((char*)mystring, "\r\nIRQ_MASK3=%d \r\nIRQ_MASK2=%d \r\nIRQ_MASK1=%d \r\nIRQ_MASK0=%d", readReg[0], readReg[1], readReg[2], readReg[3]);
 		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 		
 		
