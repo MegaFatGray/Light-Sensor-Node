@@ -94,7 +94,7 @@ PktBasicInit xBasicInit={
 */
 SGpioInit xGpioIRQ={
   S2LP_GPIO_3,
-  S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP,
+  S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
   S2LP_GPIO_DIG_OUT_IRQ
 };
 
@@ -165,7 +165,6 @@ void TopLevel()
 		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 		
 		
-		
 		/* fit the TX FIFO */
     //S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
     //S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
@@ -190,6 +189,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	// add check for INT_S2LP_GPIO3
 	xTxDoneFlag = SET;
+	
+	uint8_t mystring[50];
+	sprintf((char*)mystring, "\r\nHAL_GPIO_EXTI_Callback");
+	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 	
 	// from example project...
 	/*
