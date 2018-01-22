@@ -127,6 +127,9 @@ void TopLevel()
   S2LPEnterShutdown();
   S2LPExitShutdown();
 	
+	/* Allow time for S2LP to power up */
+	HAL_Delay(10);
+	
 	/* S2LP IRQ config */
   S2LPGpioInit(&xGpioIRQ);
 	
@@ -154,27 +157,11 @@ void TopLevel()
 	/* infinite loop */
   while (1)
 	{
-		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_3;
-		xGpioIRQ.xS2LPGpioMode = S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP;
-		xGpioIRQ.xS2LPGpioIO   = S2LP_GPIO_DIG_OUT_VDD;
-		S2LPGpioInit(&xGpioIRQ);
-		
+		// read GPIO3_CONF
+		uint8_t mystring[50];
 		uint8_t readReg;
 		S2LPSpiReadRegisters(0x03, 1, &readReg);
-		uint8_t mystring[50];
-		sprintf((char*)mystring, "\r\nreg=%d", readReg);
-		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
-		
-		HAL_Delay(500);
-		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-		
-		xGpioIRQ.xS2LPGpioPin  = S2LP_GPIO_3;
-		xGpioIRQ.xS2LPGpioMode = S2LP_GPIO_MODE_DIGITAL_OUTPUT_HP;
-		xGpioIRQ.xS2LPGpioIO   = S2LP_GPIO_DIG_OUT_GND;
-		S2LPGpioInit(&xGpioIRQ);
-		
-		S2LPSpiReadRegisters(0x03, 1, &readReg);
-		sprintf((char*)mystring, "\r\nreg=%d", readReg);
+		sprintf((char*)mystring, "\r\nGPIO3_CONF=%d", readReg);
 		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 		
 		
