@@ -23,6 +23,8 @@
   
 /*****************************************************************************/
 // typedefs
+
+S2LPIrqs xIrqStatus;
   
 /*****************************************************************************/
 // structures
@@ -181,20 +183,16 @@ void TopLevel()
 		/* pause between two transmissions */
 		HAL_Delay(500);
 		
-		
-		
-		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 	}		
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	// add check for INT_S2LP_GPIO3
-	xTxDoneFlag = SET;
+	//xTxDoneFlag = SET;
 	
 	// from example project...
-	/*
-	if(GPIO_Pin==M2S_GPIO_PIN_IRQ)
+	if(GPIO_Pin==GPIO_PIN_2)
    { 
     // Get the IRQ status
     S2LPGpioIrqGetStatus(&xIrqStatus);
@@ -206,10 +204,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       xTxDoneFlag = SET;
       
       // toggle LED1
-      SdkEvalLedToggle(LED1);
+      HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
     }
    }
-	*/
+	
 }
 
 // close the Doxygen group
