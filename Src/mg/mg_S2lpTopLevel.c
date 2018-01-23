@@ -157,24 +157,26 @@ void TopLevel()
 	/* infinite loop */
   while (1)
 	{
+		
+		
 		// read IRQ_MASK3
-		uint8_t mystring[100];
-		uint8_t readReg[4];
-		S2LPSpiReadRegisters(0x50, 4, readReg);
-		sprintf((char*)mystring, "\r\nIRQ_MASK3=%d \r\nIRQ_MASK2=%d \r\nIRQ_MASK1=%d \r\nIRQ_MASK0=%d", readReg[0], readReg[1], readReg[2], readReg[3]);
-		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+		//uint8_t mystring[100];
+		//uint8_t readReg[4];
+		//S2LPSpiReadRegisters(0x50, 4, readReg);
+		//sprintf((char*)mystring, "\r\nIRQ_MASK3=%d \r\nIRQ_MASK2=%d \r\nIRQ_MASK1=%d \r\nIRQ_MASK0=%d", readReg[0], readReg[1], readReg[2], readReg[3]);
+		//HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 		
 		
 		/* fit the TX FIFO */
-    //S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
-    //S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
+    S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
+    S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
 		
 		/* send the TX command */
-    //S2LPCmdStrobeTx();
+    S2LPCmdStrobeTx();
 		
 		/* wait for TX done */
-    //while(!xTxDoneFlag);
-    //xTxDoneFlag = RESET;
+    while(!xTxDoneFlag);
+    xTxDoneFlag = RESET;
 		
 		/* pause between two transmissions */
 		HAL_Delay(500);
@@ -189,10 +191,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	// add check for INT_S2LP_GPIO3
 	xTxDoneFlag = SET;
-	
-	uint8_t mystring[50];
-	sprintf((char*)mystring, "\r\nHAL_GPIO_EXTI_Callback");
-	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 	
 	// from example project...
 	/*

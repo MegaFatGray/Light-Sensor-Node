@@ -9,7 +9,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * COPYRIGHT(c) 2018 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -66,6 +66,7 @@
 #define S2LP_GPIO2_GPIO_Port GPIOB
 #define INT_S2LP_GPIO3_Pin GPIO_PIN_2
 #define INT_S2LP_GPIO3_GPIO_Port GPIOB
+#define INT_S2LP_GPIO3_EXTI_IRQn EXTI2_3_IRQn
 
 /* USER CODE BEGIN Private defines */
 
