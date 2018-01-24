@@ -29,6 +29,7 @@
   
 /*****************************************************************************/
 // constants
+extern UART_HandleTypeDef huart1;
   
 /*****************************************************************************/
 // macros
@@ -167,6 +168,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         if(xCorrect)
 				{
 					/* SEND SOMETHING OVER DEBUG UART... (NEED TO IMPLEMENT) */
+					HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+					uint8_t mystring[50];
+					sprintf((char*)mystring, "\r\nRx data:");
+					HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+					for(uint8_t i=0; i<cRxData; i++)
+					{
+						sprintf((char*)mystring, "\r\n%d", vectcRxBuff[i]);
+						HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+					}
         }
       }
 			
