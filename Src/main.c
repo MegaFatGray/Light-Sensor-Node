@@ -363,7 +363,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, SENSE_EN_Pin|RANGE_Pin|nCS_S2LP_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(nS2LP_EN_GPIO_Port, nS2LP_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LED_GRN_Pin|nS2LP_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : SENSE_EN_Pin RANGE_Pin nCS_S2LP_Pin */
   GPIO_InitStruct.Pin = SENSE_EN_Pin|RANGE_Pin|nCS_S2LP_Pin;
@@ -372,12 +372,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : nS2LP_EN_Pin */
-  GPIO_InitStruct.Pin = nS2LP_EN_Pin;
+  /*Configure GPIO pins : LED_GRN_Pin nS2LP_EN_Pin */
+  GPIO_InitStruct.Pin = LED_GRN_Pin|nS2LP_EN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(nS2LP_EN_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : S2LP_GPIO0_Pin */
   GPIO_InitStruct.Pin = S2LP_GPIO0_Pin;

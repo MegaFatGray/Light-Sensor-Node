@@ -52,6 +52,8 @@
 #define SENSE_EN_GPIO_Port GPIOC
 #define RANGE_Pin GPIO_PIN_2
 #define RANGE_GPIO_Port GPIOC
+#define LED_GRN_Pin GPIO_PIN_2
+#define LED_GRN_GPIO_Port GPIOA
 #define nS2LP_EN_Pin GPIO_PIN_4
 #define nS2LP_EN_GPIO_Port GPIOA
 #define nCS_S2LP_Pin GPIO_PIN_4
