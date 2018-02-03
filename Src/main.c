@@ -106,8 +106,6 @@ int main(void)
   MX_RTC_Init();
 
   /* USER CODE BEGIN 2 */
-	uint8_t mystring[] = "\r\nTEST";
-	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 	
 	TopLevel();
 	

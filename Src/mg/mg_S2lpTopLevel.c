@@ -34,6 +34,10 @@ S2LPIrqs xIrqStatus;
   
 /*****************************************************************************/
 // macros
+
+/* Switch to change from Rx to Tx code */
+//#define RX
+
 #define BASE_FREQUENCY              868.0e6
 #define MODULATION_SELECT           MOD_2FSK
 #define DATARATE                    38400
@@ -121,10 +125,8 @@ uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 *   \return     <return code description>
 *   \retval     <optional. explain individual return codes>
 ******************************************************************************/
-void TopLevel()
+void mg_initS2LP_Tx(void)
 {
-	HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-	
 	/* S2LP ON */
   S2LPEnterShutdown();
   S2LPExitShutdown();
@@ -155,12 +157,33 @@ void TopLevel()
 	
 	/* IRQ registers blanking */
   S2LPGpioIrqClearStatus();
+}
+
+void mg_initS2LP_Rx(void)
+{
+	
+}
+	
+void TopLevel()
+{
+	/* Tx initialisation */
+	#ifndef RX
+	uint8_t mystring[] = "\r\nLight Sensor Node - Tx";
+	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+	mg_initS2LP_Tx();
+	#endif
+	
+	/* Rx initialisation */
+	#ifdef RX
+	uint8_t mystring[] = "\r\nLight Sensor Node - Rx";
+	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+	#endif
 	
 	/* infinite loop */
   while (1)
 	{
-		
-		
+		/* -------------------- Tx -------------------- */
+		#ifndef RX
 		// read IRQ_MASK3
 		//uint8_t mystring[100];
 		//uint8_t readReg[4];
@@ -183,11 +206,19 @@ void TopLevel()
 		/* pause between two transmissions */
 		HAL_Delay(500);
 		
+		#endif
+		
+		/* -------------------- Rx -------------------- */
+		#ifdef RX
+		
+		#endif
 	}		
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	/* -------------------- Tx -------------------- */
+	#ifndef RX
 	// add check for INT_S2LP_GPIO3
 	//xTxDoneFlag = SET;
 	
@@ -207,7 +238,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
     }
    }
+	#endif
 	
+	/* -------------------- Rx -------------------- */
+	#ifdef RX
+		
+	#endif
 }
 
 // close the Doxygen group
