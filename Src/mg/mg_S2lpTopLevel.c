@@ -105,6 +105,16 @@ SGpioInit xGpioIRQ={
 };
 
 /**
+ * @brief IRQ status struct declaration
+ */
+S2LPIrqs xIrqStatus;
+
+/**
+ * @brief Rx buffer declaration: how to store the received data
+ */
+uint8_t vectcRxBuff[128], cRxData;
+
+/**
 * @brief Declare the Tx done flag
 */
 volatile FlagStatus xTxDoneFlag = RESET;
@@ -127,6 +137,30 @@ uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 ******************************************************************************/
 void mg_initS2LP_Tx(void)
 {
+	
+	
+	
+}
+
+void mg_initS2LP_Rx(void)
+{
+	
+}
+	
+void TopLevel()
+{
+	/* Tx startup string */
+	#ifndef RX
+		uint8_t mystring[] = "\r\nLight Sensor Node - Tx";
+		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+	#endif
+	
+	/* Rx startup string */
+	#ifdef RX
+		uint8_t mystring[] = "\r\nLight Sensor Node - Rx";
+		HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+	#endif
+	
 	/* S2LP ON */
   S2LPEnterShutdown();
   S2LPExitShutdown();
@@ -148,35 +182,32 @@ void mg_initS2LP_Tx(void)
 	/* S2LP Packet config */
   S2LPPktBasicInit(&xBasicInit);
 	
-	/* S2LP IRQs enable */
-  S2LPGpioIrqDeInit(NULL);										// Reset IRQ register bits to 0
-  S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);	// Set IRQ to interrupt when data has been transmitted
+	/* Tx initialisation */
+	#ifndef RX
+		/* S2LP IRQs enable */
+		S2LPGpioIrqDeInit(NULL);										// Reset IRQ register bits to 0
+		S2LPGpioIrqConfig(TX_DATA_SENT , S_ENABLE);	// Set IRQ to interrupt when data has been transmitted
+	#endif
+	
+	/* Rx initialisation */
+	#ifdef RX
+		/* S2LP IRQs enable */
+		S2LPGpioIrqDeInit(&xIrqStatus);	  					// Reset IRQ register bits to 0
+		S2LPGpioIrqConfig(RX_DATA_DISC,S_ENABLE);	  // Set IRQ to interrupt if Rx data has been discarded upon filtering
+		S2LPGpioIrqConfig(RX_DATA_READY,S_ENABLE);	// Set IRQ to interrupt if Rx data is ready
+		/* RX timeout config */
+		S2LPTimerSetRxTimerMs(700.0);
+	#endif
 	
 	/* payload length config */
   S2LPPktBasicSetPayloadLength(20);						// Set the payload length to 20 bytes
 	
 	/* IRQ registers blanking */
   S2LPGpioIrqClearStatus();
-}
-
-void mg_initS2LP_Rx(void)
-{
 	
-}
-	
-void TopLevel()
-{
-	/* Tx initialisation */
-	#ifndef RX
-	uint8_t mystring[] = "\r\nLight Sensor Node - Tx";
-	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
-	mg_initS2LP_Tx();
-	#endif
-	
-	/* Rx initialisation */
 	#ifdef RX
-	uint8_t mystring[] = "\r\nLight Sensor Node - Rx";
-	HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+		/* RX command */
+		S2LPCmdStrobeRx();
 	#endif
 	
 	/* infinite loop */
@@ -184,33 +215,68 @@ void TopLevel()
 	{
 		/* -------------------- Tx -------------------- */
 		#ifndef RX
-		// read IRQ_MASK3
-		//uint8_t mystring[100];
-		//uint8_t readReg[4];
-		//S2LPSpiReadRegisters(0x50, 4, readReg);
-		//sprintf((char*)mystring, "\r\nIRQ_MASK3=%d \r\nIRQ_MASK2=%d \r\nIRQ_MASK1=%d \r\nIRQ_MASK0=%d", readReg[0], readReg[1], readReg[2], readReg[3]);
-		//HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+			// read IRQ_MASK3
+			//uint8_t mystring[100];
+			//uint8_t readReg[4];
+			//S2LPSpiReadRegisters(0x50, 4, readReg);
+			//sprintf((char*)mystring, "\r\nIRQ_MASK3=%d \r\nIRQ_MASK2=%d \r\nIRQ_MASK1=%d \r\nIRQ_MASK0=%d", readReg[0], readReg[1], readReg[2], readReg[3]);
+			//HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 		
 		
-		/* fit the TX FIFO */
-    S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
-    S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
+			/* fit the TX FIFO */
+			S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
+			S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
 		
-		/* send the TX command */
-    S2LPCmdStrobeTx();
+			/* send the TX command */
+			S2LPCmdStrobeTx();
 		
-		/* wait for TX done */
-    while(!xTxDoneFlag);
-    xTxDoneFlag = RESET;
+			/* wait for TX done */
+			while(!xTxDoneFlag);
+			xTxDoneFlag = RESET;
 		
-		/* pause between two transmissions */
-		HAL_Delay(500);
+			/* pause between two transmissions */
+			HAL_Delay(500);
 		
 		#endif
 		
 		/* -------------------- Rx -------------------- */
 		#ifdef RX
+			uint8_t tmp;
 		
+			SGpioInit xGpioIRQ_GND={
+				S2LP_GPIO_3,
+				S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
+				S2LP_GPIO_DIG_OUT_GND
+			};
+			
+			SGpioInit xGpioIRQ_VDD={
+				S2LP_GPIO_3,
+				S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
+				S2LP_GPIO_DIG_OUT_VDD
+			};
+			
+			S2LPGpioInit(&xGpioIRQ_GND);
+			
+			S2LPSpiReadRegisters(xGpioIRQ_GND.xS2LPGpioPin, 1, &tmp);
+			
+			char mystring[50];
+			sprintf(mystring, "GND %d", tmp);
+			HAL_UART_Transmit(&huart1, (uint8_t*)mystring, sizeof(mystring), 500);
+			
+			HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+			
+			HAL_Delay(500);
+			
+			S2LPGpioInit(&xGpioIRQ_VDD);
+			
+			S2LPSpiReadRegisters(xGpioIRQ_GND.xS2LPGpioPin, 1, &tmp);
+			
+			sprintf(mystring, "VDD %d", tmp);
+			HAL_UART_Transmit(&huart1, (uint8_t*)mystring, sizeof(mystring), 500);
+			
+			HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+			
+			HAL_Delay(500);
 		#endif
 	}		
 }
@@ -219,30 +285,84 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	/* -------------------- Tx -------------------- */
 	#ifndef RX
-	// add check for INT_S2LP_GPIO3
-	//xTxDoneFlag = SET;
-	
-	// from example project...
-	if(GPIO_Pin==GPIO_PIN_2)
-   { 
-    // Get the IRQ status
-    S2LPGpioIrqGetStatus(&xIrqStatus);
-    
-    // Check the SPIRIT TX_DATA_SENT IRQ flag
-    if(xIrqStatus.IRQ_TX_DATA_SENT)
-    {
-      // set the tx_done_flag to manage the event in the main()
-      xTxDoneFlag = SET;
-      
-      // toggle LED1
-      HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-    }
-   }
+		// add check for INT_S2LP_GPIO3
+		//xTxDoneFlag = SET;
+		
+		// from example project...
+		if(GPIO_Pin==GPIO_PIN_2)
+		{ 
+			// Get the IRQ status
+			S2LPGpioIrqGetStatus(&xIrqStatus);
+			
+			// Check the SPIRIT TX_DATA_SENT IRQ flag
+			if(xIrqStatus.IRQ_TX_DATA_SENT)
+			{
+				// set the tx_done_flag to manage the event in the main()
+				xTxDoneFlag = SET;
+				
+				// toggle LED1
+				HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+			}
+		}
 	#endif
 	
 	/* -------------------- Rx -------------------- */
 	#ifdef RX
-		
+		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+	
+		if(GPIO_Pin==INT_S2LP_GPIO3_Pin)
+		{ 
+			/* Get the IRQ status */
+			S2LPGpioIrqGetStatus(&xIrqStatus);
+			
+			/* Check the S2LP RX_DATA_DISC IRQ flag */
+			if(xIrqStatus.IRQ_RX_DATA_DISC)
+			{
+				/* SEND SOMETHING OVER DEBUG UART... (NEED TO IMPLEMENT) */
+				
+				/* RX command - to ensure the device will be ready for the next reception */
+				S2LPCmdStrobeRx();
+			}
+				
+			/* Check the S2LP RX_DATA_READY IRQ flag */
+			if(xIrqStatus.IRQ_RX_DATA_READY)
+			{
+				/* Get the RX FIFO size */
+				cRxData = S2LPFifoReadNumberBytesRxFifo();
+				
+				/* Read the RX FIFO */
+				S2LPSpiReadFifo(cRxData, vectcRxBuff);
+				
+				/* Flush the RX FIFO */
+				S2LPCmdStrobeFlushRxFifo();
+				
+				/*  A simple way to check if the received data sequence is correct (in this case LED5 will toggle) */
+				{
+					SBool xCorrect=S_TRUE;
+					
+					for(uint8_t i=0 ; i<cRxData ; i++)
+						if(vectcRxBuff[i] != i+1)
+							xCorrect=S_FALSE;
+					
+					if(xCorrect)
+					{
+						/* SEND SOMETHING OVER DEBUG UART... (NEED TO IMPLEMENT) */
+						//HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+						uint8_t mystring[50];
+						sprintf((char*)mystring, "\r\nRx data:");
+						HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+						for(uint8_t i=0; i<cRxData; i++)
+						{
+							sprintf((char*)mystring, "\r\n%d", vectcRxBuff[i]);
+							HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+						}
+					}
+				}
+				
+				/* RX command - to ensure the device will be ready for the next reception */
+				S2LPCmdStrobeRx();
+			}
+		}
 	#endif
 }
 
