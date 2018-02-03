@@ -131,6 +131,8 @@ uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 ******************************************************************************/
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+	HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+	
 	if(GPIO_Pin==INT_S2LP_GPIO3_Pin)
   { 
 		/* Get the IRQ status */
@@ -168,7 +170,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
         if(xCorrect)
 				{
 					/* SEND SOMETHING OVER DEBUG UART... (NEED TO IMPLEMENT) */
-					HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+					//HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
 					uint8_t mystring[50];
 					sprintf((char*)mystring, "\r\nRx data:");
 					HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
@@ -235,7 +237,42 @@ void TopLevel()
 	/* infinite loop */
   while (1)
 	{
+		uint8_t tmp;
 		
+		SGpioInit xGpioIRQ_GND={
+			S2LP_GPIO_3,
+			S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
+			S2LP_GPIO_DIG_OUT_GND
+		};
+		
+		SGpioInit xGpioIRQ_VDD={
+			S2LP_GPIO_3,
+			S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
+			S2LP_GPIO_DIG_OUT_VDD
+		};
+		
+		S2LPGpioInit(&xGpioIRQ_GND);
+		
+		S2LPSpiReadRegisters(xGpioIRQ_GND.xS2LPGpioPin, 1, &tmp);
+		
+		char mystring[50];
+		sprintf(mystring, "GND %d", tmp);
+		HAL_UART_Transmit(&huart1, (uint8_t*)mystring, sizeof(mystring), 500);
+		
+		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+		
+		HAL_Delay(500);
+		
+		S2LPGpioInit(&xGpioIRQ_VDD);
+		
+		S2LPSpiReadRegisters(xGpioIRQ_GND.xS2LPGpioPin, 1, &tmp);
+		
+		sprintf(mystring, "VDD %d", tmp);
+		HAL_UART_Transmit(&huart1, (uint8_t*)mystring, sizeof(mystring), 500);
+		
+		HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
+		
+		HAL_Delay(500);
 	}		
 }
 
