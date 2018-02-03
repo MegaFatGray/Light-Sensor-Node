@@ -36,7 +36,7 @@ S2LPIrqs xIrqStatus;
 // macros
 
 /* Switch to change from Rx to Tx code */
-//#define RX
+#define RX
 
 #define BASE_FREQUENCY              868.0e6
 #define MODULATION_SELECT           MOD_2FSK
@@ -123,6 +123,8 @@ volatile FlagStatus xTxDoneFlag = RESET;
 * @brief Tx buffer declaration: data to transmit
 */
 uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
+
+char transmitString[20] = {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
   
 /*****************************************************************************/
 // functions
@@ -135,18 +137,6 @@ uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 *   \return     <return code description>
 *   \retval     <optional. explain individual return codes>
 ******************************************************************************/
-void mg_initS2LP_Tx(void)
-{
-	
-	
-	
-}
-
-void mg_initS2LP_Rx(void)
-{
-	
-}
-	
 void TopLevel()
 {
 	/* Tx startup string */
@@ -215,17 +205,9 @@ void TopLevel()
 	{
 		/* -------------------- Tx -------------------- */
 		#ifndef RX
-			// read IRQ_MASK3
-			//uint8_t mystring[100];
-			//uint8_t readReg[4];
-			//S2LPSpiReadRegisters(0x50, 4, readReg);
-			//sprintf((char*)mystring, "\r\nIRQ_MASK3=%d \r\nIRQ_MASK2=%d \r\nIRQ_MASK1=%d \r\nIRQ_MASK0=%d", readReg[0], readReg[1], readReg[2], readReg[3]);
-			//HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
-		
-		
 			/* fit the TX FIFO */
-			S2LPCmdStrobeFlushTxFifo();								// Flush Tx FIFO
-			S2LPSpiWriteFifo(20, vectcTxBuff);				// Write to Tx FIFO
+			S2LPCmdStrobeFlushTxFifo();														// Flush Tx FIFO
+			S2LPSpiWriteFifo(20, (uint8_t*)transmitString);				// Write to Tx FIFO
 		
 			/* send the TX command */
 			S2LPCmdStrobeTx();
@@ -241,42 +223,7 @@ void TopLevel()
 		
 		/* -------------------- Rx -------------------- */
 		#ifdef RX
-			uint8_t tmp;
-		
-			SGpioInit xGpioIRQ_GND={
-				S2LP_GPIO_3,
-				S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
-				S2LP_GPIO_DIG_OUT_GND
-			};
 			
-			SGpioInit xGpioIRQ_VDD={
-				S2LP_GPIO_3,
-				S2LP_GPIO_MODE_DIGITAL_OUTPUT_LP,
-				S2LP_GPIO_DIG_OUT_VDD
-			};
-			
-			S2LPGpioInit(&xGpioIRQ_GND);
-			
-			S2LPSpiReadRegisters(xGpioIRQ_GND.xS2LPGpioPin, 1, &tmp);
-			
-			char mystring[50];
-			sprintf(mystring, "GND %d", tmp);
-			HAL_UART_Transmit(&huart1, (uint8_t*)mystring, sizeof(mystring), 500);
-			
-			HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-			
-			HAL_Delay(500);
-			
-			S2LPGpioInit(&xGpioIRQ_VDD);
-			
-			S2LPSpiReadRegisters(xGpioIRQ_GND.xS2LPGpioPin, 1, &tmp);
-			
-			sprintf(mystring, "VDD %d", tmp);
-			HAL_UART_Transmit(&huart1, (uint8_t*)mystring, sizeof(mystring), 500);
-			
-			HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-			
-			HAL_Delay(500);
 		#endif
 	}		
 }
@@ -318,7 +265,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			/* Check the S2LP RX_DATA_DISC IRQ flag */
 			if(xIrqStatus.IRQ_RX_DATA_DISC)
 			{
-				/* SEND SOMETHING OVER DEBUG UART... (NEED TO IMPLEMENT) */
+				/* error - data discarded */
+				uint8_t mystring[50];
+				sprintf((char*)mystring, "\r\nRx data discarded");
+				HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
 				
 				/* RX command - to ensure the device will be ready for the next reception */
 				S2LPCmdStrobeRx();
@@ -336,28 +286,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 				/* Flush the RX FIFO */
 				S2LPCmdStrobeFlushRxFifo();
 				
-				/*  A simple way to check if the received data sequence is correct (in this case LED5 will toggle) */
-				{
-					SBool xCorrect=S_TRUE;
-					
-					for(uint8_t i=0 ; i<cRxData ; i++)
-						if(vectcRxBuff[i] != i+1)
-							xCorrect=S_FALSE;
-					
-					if(xCorrect)
-					{
-						/* SEND SOMETHING OVER DEBUG UART... (NEED TO IMPLEMENT) */
-						//HAL_GPIO_TogglePin(LED_GRN_GPIO_Port, LED_GRN_Pin);
-						uint8_t mystring[50];
-						sprintf((char*)mystring, "\r\nRx data:");
-						HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
-						for(uint8_t i=0; i<cRxData; i++)
-						{
-							sprintf((char*)mystring, "\r\n%d", vectcRxBuff[i]);
-							HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
-						}
-					}
-				}
+				/* Output Rx data to UART */
+				uint8_t debugString[] = {"\r\nRx data:\r\n"};
+				HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
+				HAL_UART_Transmit(&huart1, vectcRxBuff, cRxData, 500);
 				
 				/* RX command - to ensure the device will be ready for the next reception */
 				S2LPCmdStrobeRx();
