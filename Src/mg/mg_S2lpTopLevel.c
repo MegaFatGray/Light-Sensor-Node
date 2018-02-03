@@ -122,8 +122,6 @@ volatile FlagStatus xTxDoneFlag = RESET;
 /**
 * @brief Tx buffer declaration: data to transmit
 */
-uint8_t vectcTxBuff[20]={1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
-
 char transmitString[20] = {'H', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
   
 /*****************************************************************************/
@@ -165,7 +163,7 @@ void TopLevel()
   S2LPRadioInit(&xRadioInit);
 	
 	/* S2LP Radio set power */
-  S2LPRadioSetMaxPALevel(S_DISABLE);     // Disable transmission at maximum power
+  S2LPRadioSetMaxPALevel(S_ENABLE);      // Enable transmission at maximum power
 	S2LPRadioSetPALeveldBm(7,POWER_DBM);   // Set output power level for the 7th slot
 	S2LPRadioSetPALevelMaxIndex(7);        // Set output power index to 7
 	
@@ -266,9 +264,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			if(xIrqStatus.IRQ_RX_DATA_DISC)
 			{
 				/* error - data discarded */
-				uint8_t mystring[50];
-				sprintf((char*)mystring, "\r\nRx data discarded");
-				HAL_UART_Transmit(&huart1, mystring, sizeof(mystring), 500);
+				uint8_t debugString[] = {"\r\nRx data discarded"};
+				HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
 				
 				/* RX command - to ensure the device will be ready for the next reception */
 				S2LPCmdStrobeRx();
