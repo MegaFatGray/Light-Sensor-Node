@@ -272,7 +272,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			}
 				
 			/* Check the S2LP RX_DATA_READY IRQ flag */
-			if(xIrqStatus.IRQ_RX_DATA_READY)
+			else if(xIrqStatus.IRQ_RX_DATA_READY)
 			{
 				/* Get the RX FIFO size */
 				cRxData = S2LPFifoReadNumberBytesRxFifo();
@@ -290,6 +290,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 				
 				/* RX command - to ensure the device will be ready for the next reception */
 				S2LPCmdStrobeRx();
+			}
+			
+			/* If IRQ status is anything else */
+			else
+			{
+				uint8_t debugString[] = {"\r\nUnexpected IRQ status"};
+				HAL_UART_Transmit(&huart1, debugString, sizeof(debugString), 500);
 			}
 		}
 	#endif
