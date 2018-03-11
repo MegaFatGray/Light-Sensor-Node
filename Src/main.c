@@ -52,6 +52,7 @@ RTC_HandleTypeDef hrtc;
 SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -65,6 +66,7 @@ static void MX_ADC_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_RTC_Init(void);
+static void MX_USART2_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -104,6 +106,7 @@ int main(void)
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   MX_RTC_Init();
+  MX_USART2_UART_Init();
 
   /* USER CODE BEGIN 2 */
 	
@@ -169,8 +172,10 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_RTC;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2
+                              |RCC_PERIPHCLK_RTC;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
@@ -340,6 +345,27 @@ static void MX_USART1_UART_Init(void)
 
 }
 
+/* USART2 init function */
+static void MX_USART2_UART_Init(void)
+{
+
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /** Configure pins as 
         * Analog 
         * Input 
@@ -361,10 +387,13 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOC, SENSE_EN_Pin|RANGE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, LED_GRN_Pin|nS2LP_EN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_GRN_GPIO_Port, LED_GRN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(nCS_S2LP_GPIO_Port, nCS_S2LP_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(nS2LP_EN_GPIO_Port, nS2LP_EN_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : SENSE_EN_Pin RANGE_Pin nCS_S2LP_Pin */
   GPIO_InitStruct.Pin = SENSE_EN_Pin|RANGE_Pin|nCS_S2LP_Pin;
@@ -373,12 +402,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : LED_GRN_Pin nS2LP_EN_Pin */
-  GPIO_InitStruct.Pin = LED_GRN_Pin|nS2LP_EN_Pin;
+  /*Configure GPIO pin : LED_GRN_Pin */
+  GPIO_InitStruct.Pin = LED_GRN_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(LED_GRN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : S2LP_GPIO0_Pin */
   GPIO_InitStruct.Pin = S2LP_GPIO0_Pin;
@@ -397,6 +426,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(INT_S2LP_GPIO3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : nS2LP_EN_Pin */
+  GPIO_InitStruct.Pin = nS2LP_EN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(nS2LP_EN_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI2_3_IRQn, 0, 0);

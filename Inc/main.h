@@ -52,10 +52,8 @@
 #define SENSE_EN_GPIO_Port GPIOC
 #define RANGE_Pin GPIO_PIN_2
 #define RANGE_GPIO_Port GPIOC
-#define LED_GRN_Pin GPIO_PIN_2
+#define LED_GRN_Pin GPIO_PIN_1
 #define LED_GRN_GPIO_Port GPIOA
-#define nS2LP_EN_Pin GPIO_PIN_4
-#define nS2LP_EN_GPIO_Port GPIOA
 #define nCS_S2LP_Pin GPIO_PIN_4
 #define nCS_S2LP_GPIO_Port GPIOC
 #define S2LP_GPIO0_Pin GPIO_PIN_5
@@ -67,6 +65,8 @@
 #define INT_S2LP_GPIO3_Pin GPIO_PIN_2
 #define INT_S2LP_GPIO3_GPIO_Port GPIOB
 #define INT_S2LP_GPIO3_EXTI_IRQn EXTI2_3_IRQn
+#define nS2LP_EN_Pin GPIO_PIN_10
+#define nS2LP_EN_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
